@@ -33,29 +33,30 @@ class HomeController extends Controller
     {
         $query = Tournament::query();
 
-        // Lọc theo thể loại
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
-        }
-
-        // Lọc theo bộ môn
-        if ($request->filled('game_name')) {
-            $query->where('game_name', $request->game_name);
-        }
-
-        // Tìm kiếm theo tên
-        if ($request->filled('search')) {
+        // 1. Tìm kiếm theo tên (Search)
+        if ($request->has('search') && $request->search != '') {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // Sắp xếp mới nhất + phân trang
-        $tournaments = $query->orderBy('created_at', 'desc')->paginate(16);
+        // 2. Lọc theo Thể loại (Category)
+        if ($request->has('category') && $request->category != '') {
+            $sportGames = ["Bóng đá", "Bóng rổ", "Cầu lông", "Bóng chuyền", "Bơi lội", "Chạy bộ"];
+            $eSportGames = ["Liên Minh Huyền Thoại", "Valorant", "CS2", "PUBG Mobile", "Tốc Chiến", "Dota 2"];
 
-        // Giữ lại giá trị khi lọc
-        return view('home.tournaments.index', [
-            'tournaments' => $tournaments,
-            'filters' => $request->only(['category', 'game_name', 'search'])
-        ]);
+            if ($request->category == 'sport') {
+                $query->whereIn('game_name', $sportGames);
+            } elseif ($request->category == 'e-sport') {
+                $query->whereIn('game_name', $eSportGames);
+            }
+        }
+
+        // 3. Lọc theo Bộ môn (Game Name)
+        if ($request->has('game_name') && $request->game_name != '') {
+            $query->where('game_name', $request->game_name);
+        }
+
+        $tournaments = $query->orderBy('created_at', 'desc')->paginate(16)->withQueryString();
+
+        return view('home.tournaments.index', compact('tournaments'));
     }
-
 }

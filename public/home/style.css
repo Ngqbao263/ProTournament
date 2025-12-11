@@ -502,8 +502,7 @@ body {
 /* Responsive */
 @media (max-width: 576px) {
     .filter-bar {
-        flex-direction: column;
-        align-items: stretch;
+        gap: 12px;
     }
 
     .tournament-card img {
@@ -534,6 +533,34 @@ body {
 }
 
 @media (max-width: 768px) {
+    /* Form tổng: full width */
+    .filter-bar form {
+        max-width: 100% !important;
+        width: 100%;
+    }
+
+    /* Search box full width */
+    .search-box {
+        width: 100% !important;
+    }
+
+    /* Input trong search box full width */
+    .search-box input {
+        width: 100%;
+    }
+
+    /* 2 dropdown chuyển thành 2 dòng full width */
+    .filter-bar .row > div {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Select full width */
+    .filter-bar select {
+        width: 100% !important;
+        min-width: unset;
+    }
+    /* ---- */
     .list-container {
         grid-template-columns: repeat(2, 1fr);
     }

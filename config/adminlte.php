@@ -302,7 +302,7 @@ return [
         // Navbar items:
         ['header' => 'QUẢN TRỊ'],
     [
-        'text' => 'Dashboard',
+        'text' => 'Trang chủ',
         'url'  => 'admin/dashboard',
         'icon' => 'fas fa-home',
     ],

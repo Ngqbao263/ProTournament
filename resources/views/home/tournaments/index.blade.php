@@ -8,29 +8,38 @@
             </h2>
 
             {{-- Bộ lọc --}}
-            <div class="filter-bar d-flex flex-column align-items-center gap-3 mb-2">
-                <form method="GET" action="{{ route('list') }}" class="d-flex flex-column align-items-center gap-3 mb-5">
+            <div class="filter-bar d-flex flex-column align-items-center gap-3 mb-4">
+                <form method="GET" action="{{ route('list') }}" class="d-flex flex-column align-items-center w-100"
+                    style="max-width: 600px;">
 
-                    <!-- Tìm kiếm -->
-                    <div class="search-box position-relative w-100">
+                    <div class="search-box position-relative w-100 mb-3">
                         <input type="text" name="search" value="{{ request('search') }}"
-                            class="form-control bg-dark text-white border-secondary pe-5"
+                            class="form-control bg-dark text-white border-secondary pe-5 py-2"
                             placeholder="Tìm kiếm giải đấu...">
-                        <i class="bi bi-search position-absolute top-50 end-0 translate-middle-y me-3 text-secondary"></i>
+                        <button type="submit"
+                            class="btn position-absolute top-50 end-0 translate-middle-y text-secondary border-0 bg-transparent">
+                            <i class="bi bi-search"></i>
+                        </button>
                     </div>
 
-                    <!-- Thể loại & Bộ môn -->
-                    <div class="d-flex gap-3">
-                        <select name="category" id="category" class="form-select bg-dark text-white border-secondary">
-                            <option value="">-- Chọn thể loại --</option>
-                            <option value="sport" {{ request('category') == 'sport' ? 'selected' : '' }}>Thể thao</option>
-                            <option value="e-sport" {{ request('category') == 'e-sport' ? 'selected' : '' }}>E-Sport
-                            </option>
-                        </select>
+                    <div class="row g-2 w-100">
+                        <div class="col-6">
+                            <select name="category" id="category"
+                                class="form-select bg-dark text-white border-secondary w-100" onchange="this.form.submit()">
+                                <option value="">-- Thể loại --</option>
+                                <option value="sport" {{ request('category') == 'sport' ? 'selected' : '' }}>Thể thao
+                                </option>
+                                <option value="e-sport" {{ request('category') == 'e-sport' ? 'selected' : '' }}>E-Sport
+                                </option>
+                            </select>
+                        </div>
 
-                        <select name="game_name" id="game_name" class="form-select bg-dark text-white border-secondary">
-                            <option value="">-- Chọn bộ môn --</option>
-                        </select>
+                        <div class="col-6">
+                            <select name="game_name" id="game_name"
+                                class="form-select bg-dark text-white border-secondary w-100" onchange="this.form.submit()">
+                                <option value="">-- Bộ môn --</option>
+                            </select>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -59,7 +68,7 @@
                         </div>
                     </div>
                 @empty
-                    <p class="text-center text-muted">Chưa có giải đấu nào.</p>
+                    <p class="text-center text-secondary">Chưa có giải đấu nào.</p>
                 @endforelse
             </div>
 
@@ -75,78 +84,48 @@
 
     {{-- Lọc bộ môn theo thể loại --}}
     <script>
-        const sportGames = ["Bóng đá", "Bóng rổ", "Cầu lông", "Bóng chuyền", "Bơi lội", "Chạy bộ"];
-        const eSportGames = ["Liên Minh Huyền Thoại", "Valorant", "CS2", "PUBG Mobile", "Tốc Chiến", "Dota 2"];
+        document.addEventListener('DOMContentLoaded', function() {
+            const sportGames = ["Bóng đá", "Bóng rổ", "Cầu lông", "Bóng chuyền", "Bơi lội", "Chạy bộ"];
+            const eSportGames = ["Liên Minh Huyền Thoại", "Valorant", "CS2", "PUBG Mobile", "Tốc Chiến", "Dota 2"];
 
-        const categorySelect = document.getElementById('category');
-        const gameSelect = document.getElementById('game_name');
-        const searchInput = document.querySelector('.search-box input');
-        const cards = document.querySelectorAll('.list-card');
+            const categorySelect = document.getElementById('category');
+            const gameSelect = document.getElementById('game_name');
 
-        // Thay đổi bộ môn theo thể loại
-        categorySelect.addEventListener('change', function() {
-            gameSelect.innerHTML = '<option value="">-- Chọn bộ môn --</option>';
-            let games = [];
-            if (this.value === 'sport') games = sportGames;
-            if (this.value === 'e-sport') games = eSportGames;
+            // Lấy giá trị đang được chọn từ Server (để khi load lại trang nó không bị mất)
+            const currentCategory = "{{ request('category') }}";
+            const currentGame = "{{ request('game_name') }}";
 
-            games.forEach(game => {
-                const option = document.createElement('option');
-                option.value = game;
-                option.textContent = game;
-                gameSelect.appendChild(option);
-            });
+            // Hàm điền options cho game select
+            function populateGames(category) {
+                // Xóa cũ giữ lại option đầu
+                gameSelect.innerHTML = '<option value="">-- Bộ môn --</option>';
 
-            filterCards();
-        });
+                let games = [];
+                if (category === 'sport') games = sportGames;
+                if (category === 'e-sport') games = eSportGames;
 
-        // Khi chọn bộ môn
-        gameSelect.addEventListener('change', filterCards);
-        // Khi gõ tìm kiếm
-        searchInput.addEventListener('input', filterCards);
-
-        function filterCards() {
-            const category = categorySelect.value.toLowerCase();
-            const game = gameSelect.value.toLowerCase();
-            const search = searchInput.value.toLowerCase();
-
-            let visibleCount = 0;
-
-            cards.forEach(card => {
-                const title = card.querySelector('h3').textContent.toLowerCase();
-                const fullGameText = card.querySelector('p').textContent.toLowerCase();
-                // Lấy TÊN BỘ MÔN CHUẨN bằng cách loại bỏ "bộ môn: "
-                const gameNameOnly = fullGameText.replace('bộ môn:', '').trim();
-
-                // Chuyển mảng eSportGames sang chữ thường để kiểm tra so sánh
-                const lowerCaseESportGames = eSportGames.map(g => g.toLowerCase());
-                const isESport = lowerCaseESportGames.includes(gameNameOnly);
-
-                // Logic kiểm tra thể loại đúng
-                let matchCategory = !category ||
-                    (category === 'sport' && !isESport) ||
-                    (category === 'e-sport' && isESport);
-
-                // Dùng gameNameOnly để lọc chính xác
-                const matchGame = !game || gameNameOnly.includes(game);
-                const matchSearch = !search || title.includes(search);
-
-                if (matchCategory && matchGame && matchSearch) {
-                    card.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-
-            let emptyMsg = document.querySelector('.empty-message');
-            if (!emptyMsg) {
-                emptyMsg = document.createElement('p');
-                emptyMsg.className = 'empty-message text-center text-muted mt-4';
-                emptyMsg.textContent = 'Chưa có giải đấu nào.';
-                document.querySelector('.list-container').appendChild(emptyMsg);
+                games.forEach(game => {
+                    const option = document.createElement('option');
+                    option.value = game;
+                    option.textContent = game;
+                    // Nếu game này đang được chọn từ trước (do server trả về) thì selected nó
+                    if (game === currentGame) {
+                        option.selected = true;
+                    }
+                    gameSelect.appendChild(option);
+                });
             }
-            emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
-        }
+
+            // 1. Chạy ngay khi load trang để điền lại option nếu đang filter
+            populateGames(currentCategory);
+
+            // 2. Sự kiện khi người dùng thay đổi thể loại
+            // Lưu ý: Vì select có onchange="submit", trang sẽ reload ngay lập tức.
+            // Nhưng ta vẫn cần sự kiện này để trải nghiệm mượt hơn hoặc nếu bỏ auto-submit.
+            categorySelect.addEventListener('change', function() {
+                // Reset game về rỗng khi đổi thể loại
+                gameSelect.value = "";
+            });
+        });
     </script>
 @endsection
