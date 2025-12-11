@@ -70,7 +70,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="bracket-tab" data-bs-toggle="pill" data-bs-target="#bracket-content"
                         type="button" role="tab">
-                        <i class="bi bi-diagram-3 me-2"></i>Bracket
+                        <i class="bi bi-diagram-3 me-2"></i>Sơ đồ thi đấu
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -79,13 +79,18 @@
                         <i class="bi bi-calendar-event me-2"></i>Lịch thi đấu
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="ranking-tab" data-bs-toggle="pill" data-bs-target="#ranking-content"
+                        type="button" role="tab">
+                        <i class="bi bi-trophy me-2"></i>Bảng xếp hạng
+                    </button>
+                </li>
             </ul>
         </div>
 
         <div class="tab-content" id="tournamentTabContent">
-
+            {{-- Tab Mô tả --}}
             <div class="tab-pane fade show active" id="desc-content" role="tabpanel">
-
                 <div class="mb-5">
                     {{-- Tiêu đề đã có trên Tab nên ở đây chỉ hiện nội dung --}}
                     <p class="text-light" style="font-size: 1.1rem; line-height: 1.6;">
@@ -107,63 +112,8 @@
                 </div>
             </div>
 
+            {{-- Tab Lịch thi đấu --}}
             <div class="tab-pane fade" id="bracket-content" role="tabpanel">
-
-                {{-- Logic tìm ra Top 3 --}}
-                @php
-                    $finalRound = $rounds->last();
-                    $finalMatch = $finalRound ? $finalRound->firstWhere('match_index', 0) : null;
-                    $thirdMatch = $finalRound ? $finalRound->firstWhere('match_index', 1) : null;
-
-                    $champion = $finalMatch && $finalMatch->winner_id ? $finalMatch->winner : null;
-                    $runnerUp =
-                        $finalMatch && $finalMatch->winner_id
-                            ? ($finalMatch->winner_id == $finalMatch->player1_id
-                                ? $finalMatch->player2
-                                : $finalMatch->player1)
-                            : null;
-                    $thirdPlace = $thirdMatch && $thirdMatch->winner_id ? $thirdMatch->winner : null;
-                @endphp
-
-                {{-- Bục vinh danh --}}
-                @if ($champion)
-                    <div class="podium-section text-center mb-5 animate__animated animate__fadeInDown">
-                        <h2 class="fw-bold text-uppercase mb-4"
-                            style="letter-spacing: 2px; color: #f1c40f; text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);">
-                            <i class="bi bi-trophy-fill me-2"></i>Kết Quả Chung Cuộc
-                        </h2>
-                        <div class="row justify-content-center align-items-end gx-4">
-                            <div class="col-4 col-md-3 order-1">
-                                <div class="podium-card silver">
-                                    <div class="medal">🥈</div>
-                                    <div class="player-avatar"><span
-                                            class="fs-1 fw-bold">{{ substr($runnerUp->name ?? '?', 0, 1) }}</span></div>
-                                    <div class="player-name">{{ $runnerUp->name ?? 'Á Quân' }}</div>
-                                    <div class="rank-title">Hạng Nhì</div>
-                                </div>
-                            </div>
-                            <div class="col-4 col-md-4 order-2">
-                                <div class="podium-card gold">
-                                    <div class="crown"><i class="bi bi-crown-fill"></i></div>
-                                    <div class="player-avatar"><span
-                                            class="fs-1 fw-bold">{{ substr($champion->name, 0, 1) }}</span></div>
-                                    <div class="player-name">{{ $champion->name }}</div>
-                                    <div class="rank-title">VÔ ĐỊCH</div>
-                                </div>
-                            </div>
-                            <div class="col-4 col-md-3 order-3">
-                                <div class="podium-card bronze">
-                                    <div class="medal">🥉</div>
-                                    <div class="player-avatar"><span
-                                            class="fs-1 fw-bold">{{ substr($thirdPlace->name ?? '?', 0, 1) }}</span></div>
-                                    <div class="player-name">{{ $thirdPlace->name ?? 'Hạng 3' }}</div>
-                                    <div class="rank-title">Hạng Ba</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
                 {{-- Sơ đồ thi đấu --}}
                 @if ($tournament->status != 'open')
                     <div class="container-fluid">
@@ -230,7 +180,7 @@
                 @endif
             </div>
 
-            {{-- Lịch thi đấu --}}
+            {{-- Tab Lịch thi đấu --}}
             <div class="tab-pane fade" id="schedule-content" role="tabpanel">
                 @if ($tournament->status == 'open')
                     <div class="text-center py-5 text-muted">
@@ -343,8 +293,136 @@
                 @endif
             </div>
 
+            {{-- Tab Bảng xếp hạng --}}
+            <div class="tab-pane fade" id="ranking-content" role="tabpanel">
+                {{-- Logic tìm ra Top 3 --}}
+                @php
+                    $finalRound = $rounds->last();
+                    $finalMatch = $finalRound ? $finalRound->firstWhere('match_index', 0) : null;
+                    $thirdMatch = $finalRound ? $finalRound->firstWhere('match_index', 1) : null;
+
+                    $champion = $finalMatch && $finalMatch->winner_id ? $finalMatch->winner : null;
+                    $runnerUp =
+                        $finalMatch && $finalMatch->winner_id
+                            ? ($finalMatch->winner_id == $finalMatch->player1_id
+                                ? $finalMatch->player2
+                                : $finalMatch->player1)
+                            : null;
+                    $thirdPlace = $thirdMatch && $thirdMatch->winner_id ? $thirdMatch->winner : null;
+                @endphp
+
+                {{-- Bục vinh danh --}}
+                @if ($champion)
+                    <div class="podium-section text-center mb-5 animate__animated animate__fadeInDown">
+                        <h2 class="fw-bold text-uppercase mb-4"
+                            style="letter-spacing: 2px; color: #f1c40f; text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);">
+                            <i class="bi bi-trophy-fill me-2"></i>Kết Quả Chung Cuộc
+                        </h2>
+                        <div class="row justify-content-center align-items-end gx-4">
+                            <div class="col-4 col-md-3 order-1">
+                                <div class="podium-card silver">
+                                    <div class="medal">🥈</div>
+                                    <div class="player-avatar"><span
+                                            class="fs-1 fw-bold">{{ substr($runnerUp->name ?? '?', 0, 1) }}</span></div>
+                                    <div class="player-name">{{ $runnerUp->name ?? 'Á Quân' }}</div>
+                                    <div class="rank-title">Hạng Nhì</div>
+                                </div>
+                            </div>
+                            <div class="col-4 col-md-4 order-2">
+                                <div class="podium-card gold">
+                                    <div class="crown"><i class="bi bi-crown-fill"></i></div>
+                                    <div class="player-avatar"><span
+                                            class="fs-1 fw-bold">{{ substr($champion->name, 0, 1) }}</span></div>
+                                    <div class="player-name">{{ $champion->name }}</div>
+                                    <div class="rank-title">VÔ ĐỊCH</div>
+                                </div>
+                            </div>
+                            <div class="col-4 col-md-3 order-3">
+                                <div class="podium-card bronze">
+                                    <div class="medal">🥉</div>
+                                    <div class="player-avatar"><span
+                                            class="fs-1 fw-bold">{{ substr($thirdPlace->name ?? '?', 0, 1) }}</span></div>
+                                    <div class="player-name">{{ $thirdPlace->name ?? 'Hạng 3' }}</div>
+                                    <div class="rank-title">Hạng Ba</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <div class="container-fluid mt-4">
+                    {{-- Nếu giải chưa bắt đầu thì báo chưa có dữ liệu --}}
+                    @if ($tournament->status == 'open')
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-bar-chart-line" style="font-size: 3rem;"></i>
+                            <p class="mt-3">Bảng xếp hạng sẽ cập nhật khi giải đấu bắt đầu.</p>
+                        </div>
+                    @else
+                        {{-- Nếu giải đã chạy hoặc kết thúc thì hiện Bảng --}}
+                        <div class="card bg-dark border-secondary shadow">
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover mb-0 align-middle">
+                                        <thead class="bg-secondary text-uppercase small text-white">
+                                            <tr>
+                                                <th class="text-center py-3" style="width: 60px;">#</th>
+                                                <th class="py-3">Người chơi</th>
+                                                <th class="text-center py-3">Thành tích</th>
+                                                <th class="text-center py-3">Thắng</th>
+                                                <th class="text-center py-3">Hiệu số</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {{-- Duyệt qua biến $rankings được truyền từ Controller --}}
+                                            @foreach ($rankings as $rank)
+                                                <tr class="{{ $loop->first ? 'table-active border-warning' : '' }}">
+                                                    {{-- Cột Thứ hạng --}}
+                                                    <td class="text-center fw-bold fs-5">
+                                                        @if (isset($rank['medal']) && $rank['medal'])
+                                                            {{ $rank['medal'] }}
+                                                        @else
+                                                            <span class="text-secondary">{{ $loop->iteration }}</span>
+                                                        @endif
+                                                    </td>
+
+                                                    {{-- Cột Người chơi --}}
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="avatar-circle me-3 bg-secondary d-flex align-items-center justify-content-center rounded-circle"
+                                                                style="width: 35px; height: 35px; font-weight:bold;">
+                                                                {{ substr($rank['player']->name, 0, 1) }}
+                                                            </div>
+                                                            <span class="fw-bold">{{ $rank['player']->name }}</span>
+                                                        </div>
+                                                    </td>
+
+                                                    {{-- Cột Danh hiệu (Vô địch, Á quân...) --}}
+                                                    <td class="text-center">
+                                                        {!! $rank['rank_label'] !!}
+                                                    </td>
+
+                                                    {{-- Cột Số trận thắng --}}
+                                                    <td class="text-center text-success fw-bold">
+                                                        {{ $rank['wins'] }}
+                                                    </td>
+
+                                                    {{-- Cột Hiệu số --}}
+                                                    <td class="text-center text-info">
+                                                        {{ $rank['score_diff'] > 0 ? '+' : '' }}{{ $rank['score_diff'] }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
 
+        {{-- Modal Danh sách người chơi --}}
         <div class="modal fade" id="playerModal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content bg-dark text-white border-secondary shadow-lg">
@@ -365,19 +443,21 @@
                                 @if ($tournament->players->where('status', 'pending')->isEmpty())
                                     <p class="fst-italic">Không có ai đang chờ duyệt.</p>
                                 @else
-                                    <ul class="list-group list-group-flush">
-                                        @foreach ($tournament->players->where('status', 'pending') as $player)
-                                            <li
-                                                class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center">
-                                                {{ $player->name }}
-                                                <form action="{{ route('player.approve', $player->id) }}" method="POST"
-                                                    class="d-inline">
-                                                    @csrf
-                                                    <button class="btn btn-sm btn-success">Duyệt</button>
-                                                </form>
-                                            </li>
-                                        @endforeach
-                                    </ul>
+                                    <div class="player-list-scroll mb-3">
+                                        <ul class="list-group list-group-flush">
+                                            @foreach ($tournament->players->where('status', 'pending') as $player)
+                                                <li
+                                                    class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center">
+                                                    {{ $player->name }}
+                                                    <form action="{{ route('player.approve', $player->id) }}"
+                                                        method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button class="btn btn-sm btn-success">Duyệt</button>
+                                                    </form>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
                                 @endif
                             </div>
 
@@ -407,40 +487,45 @@
                             <h5 class="fw-semibold text-success mb-3">
                                 <i class="bi bi-check-circle me-2"></i>Người chơi đã duyệt
                             </h5>
-                            <ul class="list-group list-group-flush" id="approved-player-list">
-                                @forelse ($tournament->players->where('status', 'approved') as $player)
-                                    <li
-                                        class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center">
-                                        <div class="flex-grow-1">
-                                            <span
-                                                class="me-3 fw-bold text-success player-stt">{{ $loop->iteration }}.</span>
-                                            <span id="name-{{ $player->id }}">{{ $player->name }}</span>
-                                            <form id="form-{{ $player->id }}" class="d-none ajax-edit-form d-inline"
-                                                action="{{ route('player.update', $player->id) }}" method="POST">
-                                                @csrf @method('PUT')
-                                                <input type="text" name="name" value="{{ $player->name }}"
-                                                    class="form-control form-control-sm d-inline-block w-auto">
-                                                <button type="submit" class="btn btn-sm btn-success">Lưu</button>
-                                                <button type="button" class="btn btn-sm btn-secondary cancel-edit"
-                                                    data-id="{{ $player->id }}">Hủy</button>
-                                            </form>
-                                        </div>
-                                        @if ($tournament->creator_id == auth()->id() && $tournament->status == 'open')
-                                            <div class="ms-2 d-flex align-items-center gap-2">
-                                                <button type="button" class="btn btn-sm btn-outline-warning edit-btn"
-                                                    data-id="{{ $player->id }}"><i class="bi bi-pencil"></i></button>
-                                                <form class="d-inline ajax-delete-form"
-                                                    action="{{ route('player.delete', $player->id) }}" method="POST">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i
-                                                            class="bi bi-trash"></i></button>
+                            <div class="player-list-scroll">
+                                <ul class="list-group list-group-flush" id="approved-player-list">
+                                    @forelse ($tournament->players->where('status', 'approved') as $player)
+                                        <li
+                                            class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center">
+                                            <div class="flex-grow-1">
+                                                <span
+                                                    class="me-3 fw-bold text-success player-stt">{{ $loop->iteration }}.</span>
+                                                <span id="name-{{ $player->id }}">{{ $player->name }}</span>
+                                                <form id="form-{{ $player->id }}"
+                                                    class="d-none ajax-edit-form d-inline"
+                                                    action="{{ route('player.update', $player->id) }}" method="POST">
+                                                    @csrf @method('PUT')
+                                                    <input type="text" name="name" value="{{ $player->name }}"
+                                                        class="form-control form-control-sm d-inline-block w-auto">
+                                                    <button type="submit" class="btn btn-sm btn-success">Lưu</button>
+                                                    <button type="button" class="btn btn-sm btn-secondary cancel-edit"
+                                                        data-id="{{ $player->id }}">Hủy</button>
                                                 </form>
                                             </div>
-                                        @endif
-                                    </li>
-                                @empty
-                                @endforelse
-                            </ul>
+                                            @if ($tournament->creator_id == auth()->id() && $tournament->status == 'open')
+                                                <div class="ms-2 d-flex align-items-center gap-2">
+                                                    <button type="button" class="btn btn-sm btn-outline-warning edit-btn"
+                                                        data-id="{{ $player->id }}"><i
+                                                            class="bi bi-pencil"></i></button>
+                                                    <form class="d-inline ajax-delete-form"
+                                                        action="{{ route('player.delete', $player->id) }}"
+                                                        method="POST">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i
+                                                                class="bi bi-trash"></i></button>
+                                                    </form>
+                                                </div>
+                                            @endif
+                                        </li>
+                                    @empty
+                                    @endforelse
+                                </ul>
+                            </div>
                         </div>
                     </div>
 
@@ -457,7 +542,8 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content bg-dark text-white border-secondary">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="joinResultModalLabel"><i class="bi bi-info-circle me-2"></i>Thông báo
+                        <h5 class="modal-title" id="joinResultModalLabel"><i class="bi bi-info-circle me-2"></i>Thông
+                            báo
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>

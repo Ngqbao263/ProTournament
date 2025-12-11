@@ -22,7 +22,7 @@
                         </button>
                     </div>
 
-                    <div class="row g-2 w-100">
+                    <div class="row g-1 w-100">
                         <div class="col-6">
                             <select name="category" id="category"
                                 class="form-select bg-dark text-white border-secondary w-100" onchange="this.form.submit()">

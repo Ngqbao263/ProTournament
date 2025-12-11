@@ -71,12 +71,84 @@ class TournamentController extends Controller
             'matches.player2'
         ])->findOrFail($id);
 
-        // Gom nhóm matches theo vòng đấu
+        // Gom nhóm matches theo vòng đấu (Code cũ)
         $rounds = $tournament->matches->sortBy('match_index')->groupBy('round_number');
 
-        // Tạo response và thêm header để TẮT CACHE
+        // TÍNH TOÁN BẢNG XẾP HẠNG
+        $rankings = $tournament->players->where('status', 'approved')->map(function($player) use ($tournament) {
+            // Đếm số trận thắng
+            $wins = $tournament->matches->where('winner_id', $player->id)->count();
+
+            // Tính hiệu số (Tổng điểm thắng - Tổng điểm thua)
+            $scoreDiff = 0;
+            foreach($tournament->matches as $match) {
+                if ($match->player1_id == $player->id && !is_null($match->score1)) {
+                    $scoreDiff += ($match->score1 - $match->score2);
+                }
+                elseif ($match->player2_id == $player->id && !is_null($match->score2)) {
+                    $scoreDiff += ($match->score2 - $match->score1);
+                }
+            }
+
+            return [
+                'player' => $player,
+                'wins' => $wins,
+                'score_diff' => $scoreDiff,
+                'rank_label' => 'Vòng loại',
+                'medal' => null
+            ];
+        });
+
+        // XÁC ĐỊNH DANH HIỆU
+        $finalRound = $rounds->last();
+        if($finalRound) {
+            $finalMatch = $finalRound->firstWhere('match_index', 0);
+            $thirdMatch = $finalRound->firstWhere('match_index', 1);
+
+            $rankings = $rankings->map(function($item) use ($finalMatch, $thirdMatch) {
+                $pId = $item['player']->id;
+
+                // Vô địch
+                if ($finalMatch && $finalMatch->winner_id == $pId) {
+                    $item['rank_label'] = '<span class="fw-bold text-warning">VÔ ĐỊCH</span>';
+                    $item['medal'] = '🥇';
+                    $item['sort_order'] = 1;
+                }
+                // Á Quân
+                elseif ($finalMatch && ($finalMatch->player1_id == $pId || $finalMatch->player2_id == $pId) && $finalMatch->winner_id) {
+                    $item['rank_label'] = '<span class="text-secondary fw-bold">Á Quân</span>';
+                    $item['medal'] = '🥈';
+                    $item['sort_order'] = 2;
+                }
+                // Hạng 3
+                elseif ($thirdMatch && $thirdMatch->winner_id == $pId) {
+                    $item['rank_label'] = '<span class="fw-bold" style="color: #cd7f32">Hạng 3</span>';
+                    $item['medal'] = '🥉';
+                    $item['sort_order'] = 3;
+                }
+                // Hạng 4
+                elseif ($thirdMatch && ($thirdMatch->player1_id == $pId || $thirdMatch->player2_id == $pId) && $thirdMatch->winner_id) {
+                    $item['rank_label'] = 'Hạng 4';
+                    $item['sort_order'] = 4;
+                }
+                // Còn lại xếp theo số trận thắng
+                else {
+                    $item['sort_order'] = 100;
+                }
+                return $item;
+            });
+        }
+
+        // SẮP XẾP DANH SÁCH
+        // Ưu tiên: Danh hiệu -> Số trận thắng -> Hiệu số
+        $rankings = $rankings->sortByDesc('score_diff')
+                             ->sortByDesc('wins')
+                             ->sortBy('sort_order')
+                             ->values();
+
+        // Tạo response và thêm header để TẮT CACHE (Giữ nguyên logic cũ của bạn)
         $response = response(
-            view('home.tournaments.show', compact('tournament', 'rounds'))
+            view('home.tournaments.show', compact('tournament', 'rounds', 'rankings')) // <--- Truyền thêm $rankings
         );
 
         $response->header('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -249,10 +321,22 @@ class TournamentController extends Controller
         // Lấy lại thông tin match mới nhất để biết tên winner
         $match->refresh();
 
+        $loserName = null;
+
+        if ($winnerId) {
+            $maxRound = Matches::where('tournament_id', $match->tournament_id)->max('round_number');
+
+            if ($match->round_number == ($maxRound - 1)) {
+                $loser = ($winnerId == $match->player1_id) ? $match->player2 : $match->player1;
+                $loserName = $loser ? $loser->name : null;
+            }
+        }
+
         return response()->json([
             'success' => true,
             'winner_name' => $match->winner ? $match->winner->name : null, // Trả về tên người thắng
-            'winner_id' => $winnerId
+            'winner_id' => $winnerId,
+            'loser_name' => $loserName // Trả về tên người thua
         ]);
     }
 

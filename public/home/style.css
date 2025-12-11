@@ -775,6 +775,35 @@ h4.text-info {
     padding-top: 20px;
 }
 
+/* === Tạo khung cuộn cho danh sách === */
+.player-list-scroll {
+    max-height: 250px; /* Chiều cao cố định, quá 250px sẽ hiện thanh cuộn */
+    overflow-y: auto; /* Cho phép cuộn dọc */
+    padding-right: 5px; /* Tránh nội dung dính sát thanh cuộn */
+    border: 1px solid rgba(255, 255, 255, 0.05); /* Viền nhẹ cho đẹp */
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.2); /* Nền tối hơn chút để phân biệt */
+}
+
+/* === Tùy chỉnh thanh cuộn (Scrollbar) cho đẹp === */
+.player-list-scroll::-webkit-scrollbar {
+    width: 6px; /* Độ rộng thanh cuộn */
+}
+
+.player-list-scroll::-webkit-scrollbar-track {
+    background: #2c2c2c; /* Màu nền rãnh cuộn */
+    border-radius: 10px;
+}
+
+.player-list-scroll::-webkit-scrollbar-thumb {
+    background: #555; /* Màu thanh cuộn */
+    border-radius: 10px;
+}
+
+.player-list-scroll::-webkit-scrollbar-thumb:hover {
+    background: #1b7c00; /* Màu khi di chuột vào (Xanh lá) */
+}
+
 /* === Bracket === */
 /* === BỤC VINH QUANG (PODIUM) === */
 .podium-section {
