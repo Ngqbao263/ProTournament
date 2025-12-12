@@ -123,7 +123,7 @@
                                             </p>
                                             <div class="d-flex justify-content-between align-items-center mt-3">
                                                 <small class="text-white-50"><i class="bi bi-people me-1"></i>
-                                                    {{ $tournament->players_count ?? 0 }}/{{ $tournament->max_player }}</small>
+                                                    {{ $tournament->players->count() ?? 0 }}/{{ $tournament->max_player }}</small>
                                                 <small class="text-white-50"><i class="bi bi-calendar3 me-1"></i>
                                                     {{ \Carbon\Carbon::parse($tournament->start_date)->format('d/m/Y') }}</small>
                                             </div>

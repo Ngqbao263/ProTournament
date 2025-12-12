@@ -172,8 +172,8 @@
         });
 
         // 3. Xử lý chọn Bộ môn
-        const sportGames = ["Bóng đá", "Bóng rổ", "Cầu lông", "Bóng chuyền", "Bơi lội", "Chạy bộ"];
-        const eSportGames = ["Liên Minh Huyền Thoại", "Valorant", "CS2", "PUBG Mobile", "Tốc Chiến", "Dota 2"];
+        const sportGames = ["Bóng đá", "Pickelball", "Bóng rổ", "Cầu lông", "Bóng chuyền"];
+        const eSportGames = ["Liên Minh Huyền Thoại", "Liên Quân Mobile", "Valorant", "CS2", "Tốc Chiến", "Dota 2"];
 
         const categorySelect = document.getElementById('category');
         const gameSelect = document.getElementById('game_name');

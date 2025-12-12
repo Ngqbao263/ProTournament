@@ -2,7 +2,7 @@ body {
     background-color: #111;
 }
 
-/* Header */
+/* -----Header----- */
 .main-header {
     background: linear-gradient(to bottom, #1b7c00, #157000);
     padding: 10px 0;
@@ -41,7 +41,7 @@ body {
     border-radius: 4px;
 }
 
-/* --- Responsive --- */
+/* Responsive */
 @media (max-width: 991px) {
     .main-header .container {
         flex-wrap: wrap;
@@ -57,7 +57,7 @@ body {
     }
 }
 
-/* Banner */
+/* -----Hero----- */
 .hero-section {
     position: relative;
     overflow: hidden;
@@ -135,7 +135,7 @@ body {
     }
 }
 
-/* Giới thiệu */
+/* -----Giới thiệu----- */
 .introduce-home {
     background-color: #fff;
     gap: 0;
@@ -197,7 +197,7 @@ body {
     }
 }
 
-/* Các thể thức thi đấu trang chủ*/
+/* -----Các thể thức thi đấu trang chủ-----*/
 .ml-formats-section {
     background-color: #1a1717;
     position: relative;
@@ -249,7 +249,7 @@ body {
     }
 }
 
-/* Danh sách giải đấu ở trang chủ*/
+/* -----Danh sách giải đấu ở trang chủ-----*/
 .list {
     text-align: center;
     padding: 60px 20px;
@@ -410,7 +410,7 @@ body {
     }
 }
 
-/* Footer */
+/* -----Footer----- */
 .site-footer {
     background: linear-gradient(to bottom, #1b7c00, #0f5800);
     color: #fff;
@@ -454,7 +454,7 @@ body {
     }
 }
 
-/* Trang danh sách giải đấu */
+/* -----Trang danh sách giải đấu----- */
 .list-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -533,34 +533,29 @@ body {
 }
 
 @media (max-width: 768px) {
-    /* Form tổng: full width */
     .filter-bar form {
         max-width: 100% !important;
         width: 100%;
     }
 
-    /* Search box full width */
     .search-box {
         width: 100% !important;
     }
 
-    /* Input trong search box full width */
     .search-box input {
         width: 100%;
     }
 
-    /* 2 dropdown chuyển thành 2 dòng full width */
     .filter-bar .row > div {
         flex: 0 0 100%;
         max-width: 100%;
     }
 
-    /* Select full width */
     .filter-bar select {
         width: 100% !important;
         min-width: unset;
     }
-    /* ---- */
+
     .list-container {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -610,7 +605,7 @@ body {
     }
 }
 
-/* Phân trang */
+/* -----Phân trang----- */
 .custom-pagination .pagination {
     background: transparent;
 }
@@ -623,7 +618,7 @@ body {
     transform: scale(1.1);
 }
 
-/* Trang chi tiết giải đấu */
+/* -----Trang chi tiết giải đấu----- */
 .detail-title {
     font-size: 2.2rem;
     font-weight: 700;
@@ -631,7 +626,7 @@ body {
     text-shadow: 0 0 8px rgba(107, 255, 98, 0.6);
 }
 
-/* === Badge trạng thái === */
+/* Badge trạng thái */
 .badge {
     border-radius: 10px;
     font-weight: 600;
@@ -639,7 +634,7 @@ body {
     font-size: 1rem;
 }
 
-/* === Các đoạn mô tả === */
+/* mô tả */
 .text-center p {
     font-size: 1rem;
     color: #ccc;
@@ -649,7 +644,7 @@ body {
     color: #fff;
 }
 
-/* === Mục mô tả === */
+/* Mục mô tả */
 h4.text-info {
     font-weight: 600;
     color: #00ff7f !important;
@@ -660,7 +655,7 @@ h4.text-info {
     color: #ddd !important;
 }
 
-/* === Nút hành động === */
+/* Nút hành động */
 .btn {
     border-radius: 50px;
     font-weight: 500;
@@ -684,7 +679,7 @@ h4.text-info {
     color: #000 !important;
 }
 
-/* === Modal danh sách người chơi === */
+/* Modal danh sách người chơi */
 .modal-dialog.modal-lg {
     max-width: 500px;
 }
@@ -707,7 +702,7 @@ h4.text-info {
     border-radius: 30px;
 }
 
-/* === List player === */
+/* Danh sách người chơi */
 .list-group-item {
     border: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -729,26 +724,23 @@ h4.text-info {
     justify-content: center;
 }
 
-/* CSS cho Tab Menu nằm ngang liền nhau */
 .nav-pills .nav-link {
     background: transparent;
     border: 1px solid #444;
     color: #aaa;
     border-radius: 0;
-    margin-right: -1px; /* Để viền dính liền nhau */
+    margin-right: -1px;
     font-weight: 600;
     padding: 10px 25px;
     transition: all 0.3s;
 }
 
-/* Tab đầu tiên bo góc trái */
 .nav-pills .nav-item:first-child .nav-link {
     border-top-left-radius: 50px;
     border-bottom-left-radius: 50px;
     padding-left: 30px;
 }
 
-/* Tab cuối cùng bo góc phải */
 .nav-pills .nav-item:last-child .nav-link {
     border-top-right-radius: 50px;
     border-bottom-right-radius: 50px;
@@ -763,7 +755,7 @@ h4.text-info {
 }
 
 .nav-pills .nav-link.active {
-    background: #1b7c00; /* Màu xanh lá chủ đạo */
+    background: #1b7c00;
     color: #fff;
     border-color: #1b7c00;
     z-index: 3;
@@ -775,37 +767,36 @@ h4.text-info {
     padding-top: 20px;
 }
 
-/* === Tạo khung cuộn cho danh sách === */
+/* Tạo khung cuộn cho danh sách */
 .player-list-scroll {
-    max-height: 250px; /* Chiều cao cố định, quá 250px sẽ hiện thanh cuộn */
-    overflow-y: auto; /* Cho phép cuộn dọc */
-    padding-right: 5px; /* Tránh nội dung dính sát thanh cuộn */
-    border: 1px solid rgba(255, 255, 255, 0.05); /* Viền nhẹ cho đẹp */
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 8px;
-    background-color: rgba(0, 0, 0, 0.2); /* Nền tối hơn chút để phân biệt */
+    background-color: rgba(0, 0, 0, 0.2);
 }
 
-/* === Tùy chỉnh thanh cuộn (Scrollbar) cho đẹp === */
 .player-list-scroll::-webkit-scrollbar {
-    width: 6px; /* Độ rộng thanh cuộn */
+    width: 6px;
 }
 
 .player-list-scroll::-webkit-scrollbar-track {
-    background: #2c2c2c; /* Màu nền rãnh cuộn */
+    background: #2c2c2c;
     border-radius: 10px;
 }
 
 .player-list-scroll::-webkit-scrollbar-thumb {
-    background: #555; /* Màu thanh cuộn */
+    background: #555;
     border-radius: 10px;
 }
 
 .player-list-scroll::-webkit-scrollbar-thumb:hover {
-    background: #1b7c00; /* Màu khi di chuột vào (Xanh lá) */
+    background: #1b7c00;
 }
 
-/* === Bracket === */
-/* === BỤC VINH QUANG (PODIUM) === */
+/* -----Bracket----- */
+/* BỤC VINH QUANG (PODIUM) */
 .podium-section {
     padding: 20px;
     background: radial-gradient(
@@ -916,24 +907,21 @@ h4.text-info {
     }
 }
 
-/* === RESPONSIVE CHO BỤC VINH QUANG (MOBILE) === */
+/* RESPONSIVE CHO BỤC VINH QUANG (MOBILE) */
 @media (max-width: 768px) {
-    /* 1. Thu gọn khoảng cách lề */
     .podium-section {
         padding: 10px;
     }
 
     .podium-section h2 {
-        font-size: 1.2rem; /* Giảm cỡ chữ tiêu đề */
+        font-size: 1.2rem;
         margin-bottom: 20px !important;
     }
 
-    /* 2. Giảm khoảng cách giữa các cột (Gutter) */
     .podium-section .row {
-        --bs-gutter-x: 8px; /* Khoảng cách giữa các bục chỉ còn 8px */
+        --bs-gutter-x: 8px;
     }
 
-    /* 3. Thu nhỏ chiều cao các bục */
     .podium-card {
         padding: 10px 5px;
     }
@@ -948,7 +936,6 @@ h4.text-info {
         height: 140px;
     }
 
-    /* 4. Thu nhỏ Avatar */
     .podium-card .player-avatar {
         width: 50px;
         height: 50px;
@@ -960,12 +947,10 @@ h4.text-info {
         height: 60px;
     }
 
-    /* 5. Chỉnh lại cỡ chữ bên trong Avatar (chữ cái đầu tên) */
     .podium-card .player-avatar span {
-        font-size: 1.2rem !important; /* Đè lên class fs-1 của Bootstrap */
+        font-size: 1.2rem !important;
     }
 
-    /* 6. Thu nhỏ tên người chơi và danh hiệu */
     .podium-card .player-name {
         font-size: 0.8rem;
         margin-bottom: 2px;
@@ -974,7 +959,6 @@ h4.text-info {
         font-size: 0.65rem;
     }
 
-    /* 7. Chỉnh lại Vương miện và Huy chương */
     .podium-card.gold .crown {
         font-size: 1.5rem;
         top: -18px;
@@ -984,39 +968,33 @@ h4.text-info {
     }
 }
 
-/* === RESPONSIVE CHO TAB MENU TRÊN MOBILE === */
+/* RESPONSIVE CHO TAB MENU TRÊN MOBILE */
 @media (max-width: 768px) {
     /* 1. Container: Cho phép trượt ngang */
     .nav-pills {
         display: flex;
-        flex-wrap: nowrap; /* Không cho xuống dòng */
-        overflow-x: auto; /* Cho phép cuộn ngang */
-        justify-content: flex-start; /* Căn trái */
-        padding-bottom: 10px; /* Khoảng trống để vuốt không bị kẹt */
-        gap: 10px; /* Khoảng cách giữa các nút */
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding-bottom: 10px;
+        gap: 10px;
 
-        /* Ẩn thanh cuộn xấu xí đi */
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: none; /* Firefox */
+        scrollbar-width: none;
     }
     .nav-pills::-webkit-scrollbar {
-        display: none; /* Chrome/Safari */
+        display: none;
     }
 
     /* 2. Các nút (Nav Link): Biến thành hình viên thuốc tròn */
     .nav-pills .nav-item .nav-link {
-        white-space: nowrap; /* Chữ không bị ngắt dòng */
-        border-radius: 50px !important; /* Ép buộc bo tròn tất cả các góc */
-        font-size: 0.9rem; /* Chữ nhỏ lại xíu cho gọn */
-        padding: 8px 16px; /* Thu nhỏ padding */
-        margin-right: 0; /* Reset margin cũ */
-        background: rgba(
-            255,
-            255,
-            255,
-            0.05
-        ); /* Màu nền nhẹ cho nút chưa chọn */
-        border: 1px solid #444; /* Viền nhẹ */
+        white-space: nowrap;
+        border-radius: 50px !important;
+        font-size: 0.9rem;
+        padding: 8px 16px;
+        margin-right: 0;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid #444;
     }
 
     /* 3. Nút đang chọn (Active) */
@@ -1054,10 +1032,8 @@ h4.text-info {
     position: absolute;
     top: 0;
     left: 0;
-    /* width: 100%;
-    height: 100%; */
-    z-index: 0; /* Nằm dưới các thẻ bài */
-    pointer-events: none; /* Để chuột bấm xuyên qua được */
+    z-index: 0;
+    pointer-events: none;
 }
 
 /* Cột chứa các trận của 1 vòng */

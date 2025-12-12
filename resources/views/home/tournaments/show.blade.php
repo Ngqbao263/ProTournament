@@ -51,10 +51,23 @@
                 @endif
 
                 {{-- Nút Danh sách người chơi nằm ở đây --}}
-                <button type="button" class="btn btn-outline-light px-4" data-bs-toggle="modal"
-                    data-bs-target="#playerModal">
-                    <i class="bi bi-people-fill me-2"></i>Danh sách người chơi
-                </button>
+                <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
+                    @if (
+                        $tournament->creator_id != auth()->id() &&
+                            $tournament->status == 'open' &&
+                            $tournament->players->where('status', 'approved')->count() < $tournament->max_player)
+                        <form action="{{ route('tournament.join', $tournament->id) }}" method="POST"
+                            class="ajax-join-form">
+                            @csrf
+                            <button class="btn btn-primary px-4" style="height: 40px">Xin tham gia</button>
+                        </form>
+                    @endif
+                    <button type="button" class="btn btn-outline-light px-4" data-bs-toggle="modal"
+                        data-bs-target="#playerModal">
+                        <i class="bi bi-people-fill me-2"></i>Danh sách người chơi
+                    </button>
+                </div>
+
             </div>
         </div>
 
@@ -98,18 +111,7 @@
                     </p>
                 </div>
 
-                <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
-                    @if (
-                        $tournament->creator_id != auth()->id() &&
-                            $tournament->status == 'open' &&
-                            $tournament->players->where('status', 'approved')->count() < $tournament->max_player)
-                        <form action="{{ route('tournament.join', $tournament->id) }}" method="POST"
-                            class="ajax-join-form">
-                            @csrf
-                            <button class="btn btn-primary px-4"><i class="bi bi-door-open me-2"></i>Xin tham gia</button>
-                        </form>
-                    @endif
-                </div>
+
             </div>
 
             {{-- Sơ đồ thi đấu --}}
