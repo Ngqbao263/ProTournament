@@ -105,10 +105,13 @@
                             Loại trực tiếp
                         </option>
                         <option value="double_elimination" {{ old('type') == 'double_elimination' ? 'selected' : '' }}>
-                            Loại kép
+                            Nhánh thắng nhánh thua
                         </option>
                         <option value="round_robin" {{ old('type') == 'round_robin' ? 'selected' : '' }}>
-                            Vòng tròn
+                            Vòng tròn (đang phát triển)
+                        </option>
+                        <option value="group_stage" {{ old('type') == 'group_stage' ? 'selected' : '' }}>
+                            Chia bảng đấu (đang phát triển)
                         </option>
                     </select>
                     @error('type')

@@ -344,19 +344,38 @@ class TournamentController extends Controller
     {
         $tournament = Tournament::findOrFail($id);
         $players = $tournament->players()->where('status', 'approved')->get();
-        $playerCount = $players->count();
 
-        if ($playerCount < 2) {
+
+        if ($players->count() < 2) {
             return back()->with('error', 'Cần ít nhất 2 người chơi!');
         }
 
-        // 1. Tính toán số lượng cần thiết (lũy thừa của 2: 2, 4, 8, 16, 32...)
-        // Ví dụ: 6 người chơi => cần sơ đồ 8 (sẽ có 2 slot trống - BYE)
+        // === ĐIỀU HƯỚNG DỰA TRÊN THỂ THỨC ===
+        if ($tournament->type == 'single_elimination') {
+            // Gọi hàm tạo Loại trực tiếp
+            $this->generateSingleElimination($tournament, $players);
+        }
+        elseif ($tournament->type == 'double_elimination') {
+            // Gọi hàm tạo Nhánh thắng thua
+            $this->generateDoubleElimination($tournament, $players);
+        }
+        
+        $tournament->update(['status' => 'started']);
+
+        return back()->with('success', 'Giải đấu đã bắt đầu! Sơ đồ thi đấu đã được tạo.');
+    }
+
+    // Hàm riêng để tạo giải Loại trực tiếp
+    private function generateSingleElimination($tournament, $players)
+    {
+        $playerCount = $players->count();
+        // Tính toán số lượng cần thiết (lũy thừa của 2: 2, 4, 8, 16, 32...)
+        // Ví dụ: 6 người chơi => cần sơ đồ 8 (tạo người chơi ảo cho chỗ trống)
         $pow = ceil(log($playerCount, 2));
         $totalPositions = pow(2, $pow);
         $totalRounds = $pow;
 
-        // Tạo danh sách người chơi đầy đủ (thêm các vị trí NULL nếu thiếu)
+        // Tạo danh sách người chơi đầy đủ
         $bracketPlayers = $players->all();
         for ($i = $playerCount; $i < $totalPositions; $i++) {
             $bracketPlayers[] = null; // người chơi ảo
@@ -365,7 +384,7 @@ class TournamentController extends Controller
         // Random vị trí thi đấu
         shuffle($bracketPlayers);
 
-        // 2. Tạo các trận đấu cho tất cả các vòng
+        // Tạo các trận đấu cho tất cả các vòng
         for ($round = 1; $round <= $totalRounds; $round++) {
             $matchesInRound = $totalPositions / pow(2, $round);
 
@@ -384,7 +403,7 @@ class TournamentController extends Controller
             }
         }
 
-        // Tạo trận tranh hạng 3 (nếu có 4+ người)
+        // Tạo trận tranh hạng 3 (nếu có trên 4 người)
         // Trận này sẽ có round_number BẰNG vòng chung kết, nhưng match_index = 1
         if ($totalPositions >= 4) {
             Matches::create([
@@ -396,12 +415,8 @@ class TournamentController extends Controller
             ]);
         }
 
-        $tournament->update(['status' => 'started']);
-
-        // 3. Tự động xử lý các trận có người chơi ảo (miễn đấu) ở vòng 1
+        // Tự động xử lý các trận có người chơi ảo (miễn đấu) ở vòng 1
         $this->advanceByes($tournament->id);
-
-        return back()->with('success', 'Giải đấu đã bắt đầu! Sơ đồ thi đấu đã được tạo.');
     }
 
     // Hàm phụ: Tự động đẩy người thắng nếu gặp người chơi ảo
@@ -414,15 +429,19 @@ class TournamentController extends Controller
         foreach ($round1Matches as $match) {
             // Nếu có player1 mà không có player2 => player1 thắng tự động
             if ($match->player1_id && !$match->player2_id) {
-                // SỬA Ở ĐÂY: Gửi (null, null) thay vì (1, 0)
                 $this->processWin($match, $match->player1_id, null, null);
             }
             // Nếu không có player1 mà có player2
             elseif (!$match->player1_id && $match->player2_id) {
-                // SỬA Ở ĐÂY: Gửi (null, null) thay vì (0, 1)
                 $this->processWin($match, $match->player2_id, null, null);
             }
         }
+    }
+
+    // Hàm riêng để tạo giải Nhánh thắng - Nhánh thua
+    private function generateDoubleElimination($tournament, $players)
+    {
+
     }
 
     // Hàm phụ: Xử lý thắng thua và cập nhật vòng sau
@@ -435,7 +454,6 @@ class TournamentController extends Controller
         $match->save();
 
         // Tìm trận tiếp theo để điền tên người thắng vào
-        // (Giữ nguyên logic tìm $nextMatch)
         $nextRound = $match->round_number + 1;
         $nextMatchIndex = floor($match->match_index / 2);
 

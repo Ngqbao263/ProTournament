@@ -13,8 +13,8 @@
 
         .my-tournaments-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 255, 127, 0.15);
-            border-color: #00ff7f;
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
         }
 
         .card-img-top {
@@ -141,7 +141,6 @@
                     <div class="text-center py-5 text-muted">
                         <i class="bi bi-emoji-frown" style="font-size: 3rem;"></i>
                         <p class="mt-3">Bạn chưa tham gia giải đấu nào.</p>
-                        <a href="{{ route('home') }}" class="btn btn-outline-primary mt-2">Tìm giải đấu</a>
                     </div>
                 @else
                     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">

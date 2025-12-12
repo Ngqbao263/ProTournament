@@ -36,7 +36,7 @@
                 @if ($tournament->type == 'single_elimination')
                     Loại trực tiếp
                 @elseif($tournament->type == 'double_elimination')
-                    Loại kép
+                    Nhánh thắng nhánh thua
                 @else
                     Vòng tròn
                 @endif
@@ -91,9 +91,9 @@
         <div class="tab-content" id="tournamentTabContent">
             {{-- Tab Mô tả --}}
             <div class="tab-pane fade show active" id="desc-content" role="tabpanel">
-                <div class="mb-5">
-                    {{-- Tiêu đề đã có trên Tab nên ở đây chỉ hiện nội dung --}}
-                    <p class="text-light" style="font-size: 1.1rem; line-height: 1.6;">
+                <div class="text-center py-5">
+                    <i class="bi bi-info-circle me-2" style="font-size: 3rem; color: #444;"></i>
+                    <p class="mt-3">
                         {!! $tournament->description ?? 'Chưa có mô tả cho giải đấu này.' !!}
                     </p>
                 </div>
@@ -112,9 +112,8 @@
                 </div>
             </div>
 
-            {{-- Tab Lịch thi đấu --}}
+            {{-- Sơ đồ thi đấu --}}
             <div class="tab-pane fade" id="bracket-content" role="tabpanel">
-                {{-- Sơ đồ thi đấu --}}
                 @if ($tournament->status != 'open')
                     <div class="container-fluid">
                         @php $matchCounter = 1; @endphp
