@@ -33,7 +33,7 @@
 
         {{-- Bản quyền --}}
         <div class="text-center small text-light opacity-75">
-            © <span id="yr"></span> MyLeague. All rights reserved.
+            <span id="yr"></span> Pro Tournament
         </div>
     </div>
 </footer>

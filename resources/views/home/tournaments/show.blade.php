@@ -5,12 +5,26 @@
         <!-- Tiêu đề giải đấu -->
         <div class="text-center mb-3">
             <h1 class="detail-title fw-bold mb-2">{{ $tournament->name }}</h1>
-            <span
-                class="badge px-3 py-2 fs-6
-                @if ($tournament->status == 'open') bg-success
-                @elseif($tournament->status == 'pending') bg-warning text-dark
-                @else bg-secondary @endif">
-                {{ ucfirst($tournament->status) }}
+            @php
+                $statusLabel = match ($tournament->status) {
+                    'open' => 'Mở đăng ký',
+                    'started' => 'Đang diễn ra',
+                    'finished' => 'Kết thúc',
+                    default => 'Không xác định',
+                };
+
+                $statusClass = match ($tournament->status) {
+                    'open' => 'bg-success text-white',
+                    'started' => 'bg-warning text-dark',
+                    'finished' => 'bg-secondary text-white',
+                    'cancelled' => 'bg-danger',
+                    default => 'bg-secondary',
+                };
+            @endphp
+
+            {{-- 3. Hiển thị ra --}}
+            <span class="badge px-3 py-2 fs-6 {{ $statusClass }}">
+                {{ $statusLabel }}
             </span>
 
             @if ($tournament->thumbnail)
@@ -331,6 +345,7 @@
                             </div>
                             <div class="col-4 col-md-4 order-2">
                                 <div class="podium-card gold">
+                                    <div class="medal">🥇</div>
                                     <div class="crown"><i class="bi bi-crown-fill"></i></div>
                                     <div class="player-avatar"><span
                                             class="fs-1 fw-bold">{{ substr($champion->name, 0, 1) }}</span></div>

@@ -109,11 +109,11 @@
 
                                             {{-- Badge trạng thái --}}
                                             @if ($tournament->status == 'open')
-                                                <span class="badge bg-success status-badge">Đăng ký</span>
+                                                <span class="badge bg-success status-badge">Mở đăng ký</span>
                                             @elseif($tournament->status == 'started')
                                                 <span class="badge bg-warning text-dark status-badge">Đang diễn ra</span>
-                                            @elseif($tournament->status == 'completed')
-                                                <span class="badge bg-danger status-badge">Kết thúc</span>
+                                            @elseif($tournament->status == 'finished')
+                                                <span class="badge bg-secondary status-badge">Kết thúc</span>
                                             @endif
                                         </div>
                                         <div class="card-body">

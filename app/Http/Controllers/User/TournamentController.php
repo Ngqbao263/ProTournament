@@ -332,11 +332,23 @@ class TournamentController extends Controller
             }
         }
 
+        // Kiểm tra giải kết thuc chưa
+        if ($winnerId) {
+            // Lấy vòng đấu lớn nhất (Chung kết)
+            $maxRound = Matches::where('tournament_id', $tournament->id)->max('round_number');
+
+            // Nếu trận đang nhập là Chung kết (Vòng lớn nhất) VÀ là trận index 0 (Chung kết tổng)
+            if ($match->round_number == $maxRound && $match->match_index == 0) {
+                $tournament->update(['status' => 'finished']);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'winner_name' => $match->winner ? $match->winner->name : null, // Trả về tên người thắng
             'winner_id' => $winnerId,
-            'loser_name' => $loserName // Trả về tên người thua
+            'loser_name' => $loserName, // Trả về tên người thua
+            'tournament_status' => $tournament->fresh()->status
         ]);
     }
 
@@ -359,7 +371,7 @@ class TournamentController extends Controller
             // Gọi hàm tạo Nhánh thắng thua
             $this->generateDoubleElimination($tournament, $players);
         }
-        
+
         $tournament->update(['status' => 'started']);
 
         return back()->with('success', 'Giải đấu đã bắt đầu! Sơ đồ thi đấu đã được tạo.');

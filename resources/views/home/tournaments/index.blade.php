@@ -50,20 +50,29 @@
             <div class="list-container">
                 @forelse ($tournaments as $tournament)
                     <div class="list-card">
-                        <a href="{{ route('tournament.show', $tournament->id) }}">
-                            <img src="{{ Str::startsWith($tournament->thumbnail, 'home/')
-                                ? asset($tournament->thumbnail)
-                                : asset('storage/' . $tournament->thumbnail) }}"
-                                alt="{{ $tournament->name }}">
+                        <a href="{{ route('tournament.show', $tournament->id) }}" class="d-block position-relative">
+                            <img src="{{ Str::startsWith($tournament->thumbnail, 'home/') ? asset($tournament->thumbnail) : asset('storage/' . $tournament->thumbnail) }}"
+                                alt="{{ $tournament->name }}" style="width: 100%; display: block;" />
+
+                            <div class="position-absolute top-0 end-0 m-2">
+                                @if ($tournament->status == 'open')
+                                    <span class="badge bg-success">Mở đăng ký</span>
+                                @elseif($tournament->status == 'started')
+                                    <span class="badge bg-warning text-dark">Đang diễn ra</span>
+                                @elseif($tournament->status == 'finished')
+                                    <span class="badge bg-secondary">Kết thúc</span>
+                                @endif
+                            </div>
                         </a>
 
                         <div class="list-info">
-                            <a href="{{ route('tournament.show', $tournament->id) }}" style="text-decoration: none;">
+                            <a href="{{ route('tournament.show', $tournament->id) }}" style="text-decoration: none">
                                 <h3>{{ $tournament->name }}</h3>
                             </a>
                             <p>Bộ môn: {{ $tournament->game_name }}</p>
                             <p class="date">
-                                Ngày bắt đầu: {{ \Carbon\Carbon::parse($tournament->start_date)->format('d/m/Y') }}
+                                Ngày bắt đầu:
+                                {{ \Carbon\Carbon::parse($tournament->start_date)->format('d/m/Y') }}
                             </p>
                         </div>
                     </div>
@@ -116,12 +125,10 @@
                 });
             }
 
-            // 1. Chạy ngay khi load trang để điền lại option nếu đang filter
+            // Chạy ngay khi load trang để điền lại option nếu đang filter
             populateGames(currentCategory);
 
-            // 2. Sự kiện khi người dùng thay đổi thể loại
-            // Lưu ý: Vì select có onchange="submit", trang sẽ reload ngay lập tức.
-            // Nhưng ta vẫn cần sự kiện này để trải nghiệm mượt hơn hoặc nếu bỏ auto-submit.
+            // Sự kiện khi người dùng thay đổi thể loại
             categorySelect.addEventListener('change', function() {
                 // Reset game về rỗng khi đổi thể loại
                 gameSelect.value = "";

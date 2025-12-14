@@ -115,11 +115,22 @@
         <div class="list-container">
             @forelse ($tournaments as $tournament)
                 <div class="list-card">
-                    <a href="{{ route('tournament.show', $tournament->id) }}"><img
-                            src="{{ Str::startsWith($tournament->thumbnail, 'home/')
-                                ? asset($tournament->thumbnail)
-                                : asset('storage/' . $tournament->thumbnail) }}"
-                            alt="{{ $tournament->name }}" /></a>
+                    {{-- Thêm class position-relative và d-block vào thẻ a bao quanh ảnh --}}
+                    <a href="{{ route('tournament.show', $tournament->id) }}" class="d-block position-relative">
+                        <img src="{{ Str::startsWith($tournament->thumbnail, 'home/') ? asset($tournament->thumbnail) : asset('storage/' . $tournament->thumbnail) }}"
+                            alt="{{ $tournament->name }}" style="width: 100%; display: block;" /> {{-- Đảm bảo ảnh full width --}}
+
+                        {{-- CODE COPY TỪ PHẦN CŨ SANG: Badge trạng thái --}}
+                        <div class="position-absolute top-0 end-0 m-2">
+                            @if ($tournament->status == 'open')
+                                <span class="badge bg-success">Mở đăng ký</span>
+                            @elseif($tournament->status == 'started')
+                                <span class="badge bg-warning text-dark">Đang diễn ra</span>
+                            @elseif($tournament->status == 'finished')
+                                <span class="badge bg-secondary">Kết thúc</span>
+                            @endif
+                        </div>
+                    </a>
 
                     <div class="list-info">
                         <a href="{{ route('tournament.show', $tournament->id) }}" style="text-decoration: none">

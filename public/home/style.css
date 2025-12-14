@@ -814,6 +814,11 @@ h4.text-info {
     border: 2px solid #444;
     transition: transform 0.3s;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .podium-card:hover {
@@ -841,6 +846,9 @@ h4.text-info {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    width: 100%;
+    text-align: center;
 }
 .podium-card .rank-title {
     font-size: 0.9rem;
@@ -1172,20 +1180,20 @@ h4.text-info {
 @media (max-width: 768px) {
     /* 1. Container: Căn trái để người dùng vuốt từ trái sang phải */
     .bracket-container {
-        justify-content: flex-start; /* Không căn giữa nữa */
-        padding: 20px 10px; /* Giảm padding */
-        gap: 40px; /* Giảm khoảng cách giữa các vòng (từ 80 xuống 40) */
+        justify-content: flex-start;
+        padding: 20px 10px;
+        gap: 40px;
     }
 
     /* 2. Cột: Thu nhỏ chiều rộng */
     .round-column {
-        min-width: 200px; /* Giảm từ 260px xuống 200px */
+        min-width: 200px;
     }
 
     /* 3. Thẻ trận đấu: Font chữ nhỏ hơn chút */
     .player-name {
         font-size: 12px;
-        max-width: 100px; /* Giới hạn tên ngắn lại để không vỡ layout */
+        max-width: 100px;
     }
 
     /* 4. Ô nhập điểm: Nhỏ lại */
@@ -1197,7 +1205,7 @@ h4.text-info {
 
     /* 5. Đường nối: Ngắn lại tương ứng với gap */
     .round-column:not(:last-child) .match-card::after {
-        right: -20px; /* Giảm một nửa của gap (40px / 2) */
+        right: -20px;
         width: 20px;
     }
     .round-column:not(:first-child) .match-card::before {
@@ -1207,13 +1215,13 @@ h4.text-info {
 
     /* Điều chỉnh vị trí trận Hạng 3 trên mobile */
     .round-column:last-child .match-card[data-index="1"] {
-        top: calc(50% + 80px); /* Thu gọn khoảng cách lại */
+        top: calc(50% + 80px);
     }
 }
 
 /* Tùy chỉnh thanh cuộn cho Bracket */
 .bracket-container::-webkit-scrollbar {
-    height: 8px; /* Chiều cao thanh cuộn ngang */
+    height: 8px;
 }
 
 .bracket-container::-webkit-scrollbar-track {
@@ -1227,5 +1235,5 @@ h4.text-info {
 }
 
 .bracket-container::-webkit-scrollbar-thumb:hover {
-    background: #1b7c00; /* Màu xanh khi di chuột vào */
+    background: #1b7c00;
 }
