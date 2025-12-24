@@ -65,13 +65,24 @@
                 </div>
 
                 {{-- Thể loại --}}
-                <div class="mb-3">
-                    <label for="category" class="form-label">Thể loại</label>
-                    <select name="category" id="category" class="form-select bg-dark text-white border-secondary" required>
-                        <option value="">-- Chọn thể loại --</option>
-                        <option value="sport" {{ old('category') == 'sport' ? 'selected' : '' }}>Thể thao</option>
-                        <option value="e-sport" {{ old('category') == 'e-sport' ? 'selected' : '' }}>E-Sport</option>
-                    </select>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="category" class="form-label">Thể loại</label>
+                        <select name="category" id="category" class="form-select bg-dark text-white border-secondary"
+                            required>
+                            <option value="">-- Chọn thể loại --</option>
+                            <option value="sport" {{ old('category') == 'sport' ? 'selected' : '' }}>Thể thao</option>
+                            <option value="e-sport" {{ old('category') == 'e-sport' ? 'selected' : '' }}>E-Sport</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-white">Chế độ thi đấu</label>
+                        <select name="mode" class="form-select bg-dark text-white border-secondary">
+                            <option value="individual">Cá nhân</option>
+                            <option value="team">Đồng đội</option>
+                        </select>
+                    </div>
                 </div>
 
                 {{-- Bộ môn thi đấu --}}

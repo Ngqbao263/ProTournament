@@ -7,6 +7,7 @@ use App\Models\Player;
 use Illuminate\Http\Request;
 use App\Models\Tournament;
 use App\Models\Matches;
+use App\Models\TeamMember;
 use Illuminate\Support\Facades\Auth;
 
 class TournamentController extends Controller
@@ -26,6 +27,7 @@ class TournamentController extends Controller
             'start_date' => 'required',
             'description' => 'nullable|string',
             'type' => 'required',
+            'mode' => 'required|in:individual,team',
             'max_player' => 'required|integer|min:2',
             'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ], [
@@ -45,6 +47,7 @@ class TournamentController extends Controller
             'start_date' => $request->start_date,
             'description' => $request->description,
             'type' => $request->type,
+            'mode' => $request->mode,
             'max_player' => $request->max_player,
             'status' => 'open',
             'creator_id' => Auth::id(),
@@ -278,6 +281,25 @@ class TournamentController extends Controller
         }
 
         return back()->with('success', 'Đã xóa người chơi!');
+    }
+
+    // Thêm thành viên vào đội
+    public function storeTeam(Request $request, $playerId)
+    {
+        $request->validate(['member_name' => 'required']);
+
+        TeamMember::create([
+            'player_id' => $playerId,
+            'member_name' => $request->member_name
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Thêm thành viên thành công']);
+    }
+
+    public function destroyTeam($id)
+    {
+        TeamMember::destroy($id);
+        return response()->json(['success' => true]);
     }
 
     // Phần bảng đấu

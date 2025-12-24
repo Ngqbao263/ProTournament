@@ -13,6 +13,7 @@ class Tournament extends Model
         'name',
         'description',
         'type',
+        'mode',
         'max_player',
         'status',
         'creator_id',

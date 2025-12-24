@@ -905,6 +905,13 @@ h4.text-info {
     color: #cd7f32;
 }
 
+.podium-card .medal {
+    font-size: 4rem; /* Chỉnh số này to nhỏ tùy thích (ví dụ 3rem, 4rem, 50px...) */
+    margin-bottom: 10px; /* Tạo khoảng cách với tên người chơi */
+    line-height: 1; /* Giúp icon không bị chiếm chiều cao quá nhiều */
+    display: block; /* Đảm bảo nó đứng riêng một dòng */
+}
+
 @keyframes bounce {
     0%,
     100% {

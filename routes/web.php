@@ -46,6 +46,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Trang quản lý giải đấu cá nhân
     Route::get('/my-tournaments', [TournamentController::class, 'myTournaments'])->name('tournaments.my');
+
+    // Thêm xóa thành viên đội
+    Route::post('/players/{id}/members', [TournamentController::class, 'storeTeam'])->name('member.add');
+    Route::delete('/members/{id}', [TournamentController::class, 'destroyTeam'])->name('member.delete');
 });
 
 Route::get('/tournaments/{id}', [TournamentController::class, 'show'])->name('tournament.show');
