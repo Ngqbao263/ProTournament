@@ -107,10 +107,10 @@
                         <option value="double_elimination" {{ old('type') == 'double_elimination' ? 'selected' : '' }}>
                             Nhánh thắng nhánh thua
                         </option>
-                        <option value="round_robin" {{ old('type') == 'round_robin' ? 'selected' : '' }}>
+                        <option value="round_robin" {{ old('type') == 'round_robin' ? 'selected' : '' }} disabled>
                             Vòng tròn (đang phát triển)
                         </option>
-                        <option value="group_stage" {{ old('type') == 'group_stage' ? 'selected' : '' }}>
+                        <option value="group_stage" {{ old('type') == 'group_stage' ? 'selected' : '' }} disabled>
                             Chia bảng đấu (đang phát triển)
                         </option>
                     </select>
@@ -121,7 +121,7 @@
 
                 {{-- Số lượng --}}
                 <div class="mb-4">
-                    <label for="max_player" class="form-label">Số lượng người tham gia tối đa</label>
+                    <label for="max_player" class="form-label">Số lượng người chơi (đội) tham gia tối đa</label>
                     <input type="number" name="max_player" class="form-control bg-dark text-white border-secondary"
                         value="{{ old('max_player') }}">
                     @error('max_player')

@@ -1237,3 +1237,21 @@ h4.text-info {
 .bracket-container::-webkit-scrollbar-thumb:hover {
     background: #1b7c00;
 }
+
+/* Tab Lịch thi đấu */
+/* Card cha phải có relative và cho phép hiển thị phần tử tràn ra ngoài */
+.schedule-card {
+    position: relative !important;
+    overflow: visible !important;
+}
+
+/* Badge bay lên góc phải */
+.badge-corner-right {
+    position: absolute;
+    top: -8px; /* Đẩy lên trên viền */
+    right: 10px; /* Cách lề phải */
+    z-index: 10;
+    font-size: 10px !important;
+    padding: 4px 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5); /* Tạo bóng đổ cho nổi bật */
+}

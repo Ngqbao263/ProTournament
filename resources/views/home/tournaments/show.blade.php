@@ -45,7 +45,7 @@
             <p class="mb-1"><i class="bi bi-controller me-2"></i><strong>Bộ môn:</strong>
                 {{ $tournament->game_name }}</p>
             <p class="mb-1"><i class="bi bi-people-fill me-2"></i><strong>Tối đa:</strong>
-                {{ $tournament->max_player }} người chơi</p>
+                {{ $tournament->max_player }} người chơi (đội)</p>
             <p class=""><i class="bi bi-clipboard2-check me-2"></i><strong>Thể thức:</strong>
                 @if ($tournament->type == 'single_elimination')
                     Loại trực tiếp
@@ -135,14 +135,27 @@
                         @php $matchCounter = 1; @endphp
                         <div class="bracket-container" id="bracket-container">
                             <svg id="bracket-lines"></svg>
+
+                            @php $totalRounds = $rounds->count(); @endphp
+
                             @foreach ($rounds as $roundNumber => $matches)
                                 <div class="round-column">
                                     <div class="round-title">
-                                        @if ($loop->last && $matches->contains('match_index', 1))
-                                            Chung Kết & Hạng 3
-                                        @elseif($loop->last)
-                                            Chung Kết
+                                        @if ($roundNumber == $totalRounds)
+                                            {{-- Vòng cuối cùng: Chung kết --}}
+                                            @if ($matches->contains('match_index', 1))
+                                                Chung Kết & Hạng 3
+                                            @else
+                                                Chung Kết
+                                            @endif
+                                        @elseif ($roundNumber == $totalRounds - 1)
+                                            {{-- Kế cuối: Bán kết --}}
+                                            Bán Kết
+                                        @elseif ($roundNumber == $totalRounds - 2)
+                                            {{-- Kế của kế cuối: Tứ kết --}}
+                                            Tứ Kết
                                         @else
+                                            {{-- Còn lại --}}
                                             Vòng {{ $roundNumber }}
                                         @endif
                                     </div>
@@ -152,6 +165,7 @@
                                                 data-match-id="{{ $match->id }}"
                                                 data-round="{{ $match->round_number }}"
                                                 data-index="{{ $match->match_index }}">
+
                                                 <div class="player-row">
                                                     <span
                                                         class="player-name {{ $match->winner_id && $match->winner_id == $match->player1_id ? 'winner' : '' }} {{ $match->winner_id && $match->winner_id == $match->player2_id ? 'loser' : '' }}">
@@ -199,18 +213,27 @@
             <div class="tab-pane fade" id="schedule-content" role="tabpanel">
                 @if ($tournament->status == 'open')
                     <div class="text-center py-5 text-muted">
-                        <i class="bi bi-calendar-range" style="font-size: 3rem;"></i>
+                        <i class="bi bi-calendar-range" style="font-size: 3rem; color: #444;"></i>
                         <p class="mt-3">Lịch thi đấu sẽ hiển thị sau khi giải bắt đầu.</p>
                     </div>
                 @else
                     <div class="container-fluid mt-4">
+
+                        @php $totalRounds = $rounds->count(); @endphp
+
                         @foreach ($rounds as $roundNumber => $matches)
                             <div class="mb-5">
                                 <h5 class="text-info border-bottom border-secondary pb-2 mb-4 fw-bold text-uppercase">
-                                    @if ($loop->last && $matches->contains('match_index', 1))
-                                        Chung Kết & Hạng 3
-                                    @elseif($loop->last)
-                                        Chung Kết
+                                    @if ($roundNumber == $totalRounds)
+                                        @if ($matches->contains('match_index', 1))
+                                            Chung Kết & Hạng 3
+                                        @else
+                                            Chung Kết
+                                        @endif
+                                    @elseif ($roundNumber == $totalRounds - 1)
+                                        Bán Kết
+                                    @elseif ($roundNumber == $totalRounds - 2)
+                                        Tứ Kết
                                     @else
                                         Vòng {{ $roundNumber }}
                                     @endif
@@ -226,8 +249,13 @@
                                     @endphp
                                     @foreach ($sortedMatches as $match)
                                         <div class="col-md-6 col-lg-4">
-                                            <div class="card bg-dark border-secondary h-100 shadow-sm"
+                                            <div class="card bg-dark border-secondary h-100 shadow-sm schedule-card"
                                                 style="background-color: #1e1e1e !important;">
+                                                @if ($match->match_index == 1 && $loop->parent->last)
+                                                    <span class="badge bg-warning text-dark badge-corner-right">
+                                                        Tranh hạng 3
+                                                    </span>
+                                                @endif
                                                 <div class="card-body">
                                                     {{-- Cặp đấu --}}
                                                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -292,11 +320,12 @@
                                                         </div>
                                                     @endif
 
-                                                    @if ($match->score1 !== null)
-                                                        <div class="text-center mt-2">
+                                                    <div
+                                                        class="text-center mt-2 d-flex flex-column align-items-center gap-1">
+                                                        @if ($match->score1 !== null)
                                                             <span class="badge bg-secondary">Đã kết thúc</span>
-                                                        </div>
-                                                    @endif
+                                                        @endif
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -366,11 +395,11 @@
                     </div>
                 @endif
 
-                <div class="container-fluid mt-4">
+                <div class="container-fluid">
                     {{-- Nếu giải chưa bắt đầu thì báo chưa có dữ liệu --}}
                     @if ($tournament->status == 'open')
                         <div class="text-center py-5 text-muted">
-                            <i class="bi bi-bar-chart-line" style="font-size: 3rem;"></i>
+                            <i class="bi bi-bar-chart-line" style="font-size: 3rem; color: #444"></i>
                             <p class="mt-3">Bảng xếp hạng sẽ cập nhật khi giải đấu bắt đầu.</p>
                         </div>
                     @else
