@@ -9,6 +9,8 @@ use App\Models\Tournament;
 use App\Models\Matches;
 use App\Models\TeamMember;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class TournamentController extends Controller
 {
@@ -191,30 +193,101 @@ class TournamentController extends Controller
 
     //Thêm người chơi
     //Người chơi xin vào
-    public function join($id)
+    public function join(Request $request, $id)
     {
         $tournament = Tournament::findOrFail($id);
+        $userId = Auth::id();
 
-        // Kiểm tra nếu đủ người chơi
+        // 1. Kiểm tra số lượng
         if ($tournament->players_count >= $tournament->max_player) {
-            return response()->json(['status' => 'error', 'message' => 'Giải đấu đã đủ người chơi!']);
+            return response()->json(['status' => 'error', 'message' => 'Giải đấu đã đủ số lượng!'], 400);
         }
 
-        // Kiểm tra nếu đã xin vào rồi
-        $exists = Player::where('tournament_id', $id)
-                        ->where('name', Auth::user()->name)
-                        ->exists();
-        if ($exists) {
-            return response()->json(['status' => 'warning', 'message' => 'Bạn đã đăng ký tham gia rồi, vui lòng chờ duyệt!']);
+        // 2. BẮT ĐẦU GIAO DỊCH
+        DB::beginTransaction();
+
+        try {
+            // Check trùng (Dùng lock để tránh spam click)
+            $exists = Player::where('tournament_id', $id)
+                ->where('user_id', $userId)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($exists) {
+                DB::rollBack();
+                return response()->json(['status' => 'warning', 'message' => 'Bạn đã đăng ký tham gia rồi!']);
+            }
+
+            // === TRƯỜNG HỢP A: ĐĂNG KÝ ĐỘI ===
+            if ($request->has('team_name')) {
+                // SỬ DỤNG VALIDATOR THỦ CÔNG (Để tránh bị Redirect khi lỗi)
+                $validator = Validator::make($request->all(), [
+                    'team_name' => 'required|string|max:255',
+                    'members' => 'required|array|min:1',
+                    'members.*' => 'required|string|distinct'
+                ], [
+                    'team_name.required' => 'Tên đội không được để trống',
+                    'members.required' => 'Phải có ít nhất 1 thành viên',
+                    'members.*.distinct' => 'Tên thành viên không được trùng nhau'
+                ]);
+
+                // Nếu Validate lỗi -> Trả về JSON ngay (Không Redirect)
+                if ($validator->fails()) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $validator->errors()->first() // Lấy lỗi đầu tiên
+                    ], 422);
+                }
+
+                // Check trùng tên đội trong giải này
+                $nameExists = Player::where('tournament_id', $id)->where('name', $request->team_name)->exists();
+                if ($nameExists) {
+                    DB::rollBack();
+                    return response()->json(['status' => 'error', 'message' => 'Tên đội này đã tồn tại trong giải!'], 422);
+                }
+
+                // Tạo Đội
+                $team = Player::create([
+                    'tournament_id' => $id,
+                    'user_id' => $userId,
+                    'name' => $request->team_name,
+                    'status' => 'pending',
+                ]);
+
+                // Lưu thành viên
+                foreach ($request->members as $memberName) {
+                    if (!empty($memberName)) {
+                        TeamMember::create([
+                            'player_id' => $team->id,
+                            'member_name' => $memberName
+                        ]);
+                    }
+                }
+                $message = 'Đăng ký Đội thành công! Vui lòng chờ duyệt.';
+            }
+
+            // === TRƯỜNG HỢP B: ĐĂNG KÝ CÁ NHÂN ===
+            else {
+                Player::create([
+                    'tournament_id' => $id,
+                    'user_id' => $userId,
+                    'name' => Auth::user()->name,
+                    'status' => 'pending',
+                ]);
+                $message = 'Đăng ký thành công, vui lòng chờ duyệt!';
+            }
+
+            DB::commit(); // Lưu thành công
+            return response()->json(['status' => 'success', 'message' => $message]);
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Hủy nếu lỗi hệ thống
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Lỗi hệ thống: ' . $e->getMessage()
+            ], 500);
         }
-
-        Player::create([
-            'tournament_id' => $id,
-            'name' => Auth::user()->name,
-            'status' => 'pending',
-        ]);
-
-        return response()->json(['status' => 'success', 'message' => 'Đăng ký thành công, vui lòng chờ duyệt!']);
     }
 
     //Người tạo giải tự thêm

@@ -45,7 +45,8 @@
             <p class="mb-1"><i class="bi bi-controller me-2"></i><strong>Bộ môn:</strong>
                 {{ $tournament->game_name }}</p>
             <p class="mb-1"><i class="bi bi-people-fill me-2"></i><strong>Tối đa:</strong>
-                {{ $tournament->max_player }} người chơi (đội)</p>
+                {{ $tournament->max_player }}
+                {{ isset($tournament->mode) && $tournament->mode == 'team' ? 'Đội' : 'Người chơi' }}</p>
             <p class=""><i class="bi bi-clipboard2-check me-2"></i><strong>Thể thức:</strong>
                 @if ($tournament->type == 'single_elimination')
                     Loại trực tiếp
@@ -64,21 +65,43 @@
                     </form>
                 @endif
 
-                {{-- Nút Danh sách người chơi nằm ở đây --}}
+                {{-- Nút Danh sách người chơi --}}
                 <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
-                    @if (
-                        $tournament->creator_id != auth()->id() &&
-                            $tournament->status == 'open' &&
-                            $tournament->players->where('status', 'approved')->count() < $tournament->max_player)
-                        <form action="{{ route('tournament.join', $tournament->id) }}" method="POST"
-                            class="ajax-join-form">
-                            @csrf
-                            <button class="btn btn-primary px-4" style="height: 40px">Xin tham gia</button>
-                        </form>
-                    @endif
+
+                    @guest
+                        <a href="{{ route('login') }}" class="btn btn-primary px-4 d-flex align-items-center">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Đăng ký tham gia
+                        </a>
+                    @endguest
+
+                    @auth
+                        @if (
+                            $tournament->creator_id != auth()->id() &&
+                                $tournament->status == 'open' &&
+                                $tournament->players->where('status', 'approved')->count() < $tournament->max_player)
+                            {{-- A. Đăng ký ĐỘI --}}
+                            @if ($tournament->mode == 'team')
+                                <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal"
+                                    data-bs-target="#joinTeamModal">
+                                    Đăng ký Đội
+                                </button>
+
+                                {{-- B. Đăng ký CÁ NHÂN --}}
+                            @else
+                                <form action="{{ route('tournament.join', $tournament->id) }}" method="POST"
+                                    class="ajax-join-form">
+                                    @csrf
+                                    <button class="btn btn-primary px-4" style="height: 40px">
+                                        Đăng ký tham gia
+                                    </button>
+                                </form>
+                            @endif
+                        @endif
+                    @endauth
                     <button type="button" class="btn btn-outline-light px-4" data-bs-toggle="modal"
                         data-bs-target="#playerModal">
-                        <i class="bi bi-people-fill me-2"></i>Danh sách người chơi
+                        <i class="bi bi-people-fill me-2"></i>
+                        {{ isset($tournament->mode) && $tournament->mode == 'team' ? 'Danh sách Đội' : 'Danh sách Người chơi' }}
                     </button>
                 </div>
 
@@ -459,13 +482,13 @@
 
         {{-- Modal Danh sách người chơi --}}
         <div class="modal fade" id="playerModal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true">
-            {{-- Nếu là Team thì dùng modal-xl (Cực lớn), còn Cá nhân thì dùng modal-lg (Lớn vừa) --}}
+            {{-- Nếu là Team thì dùng modal-xl, còn Cá nhân thì dùng modal-lg --}}
             <div class="modal-dialog modal-dialog-centered {{ isset($tournament->mode) && $tournament->mode == 'team' ? '' : 'modal-lg' }}"
                 style="{{ isset($tournament->mode) && $tournament->mode == 'team' ? 'max-width: 950px;' : '' }}">
                 <div class="modal-content bg-dark text-white border-secondary shadow-lg">
 
                     <div class="modal-header text-white">
-                        <h5 class="modal-title" id="playerModalLabel">
+                        <h5 class="modal-title" id="playerModalLabel" style="color:#1b7c00">
                             <i class="bi bi-people-fill me-2"></i>Danh sách người chơi
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -525,93 +548,107 @@
                         @endif
 
                         <div>
-                            <h5 class="fw-semibold text-success mb-3">
-                                <i class="bi bi-check-circle me-2"></i>
+                            {{-- <h5 class="fw-semibold text-success mb-3">
                                 {{ isset($tournament->mode) && $tournament->mode == 'team' ? 'Danh sách Đội' : 'Danh sách Người chơi' }}
-                            </h5>
+                            </h5> --}}
                             <div class="player-list-scroll">
                                 <ul class="list-group list-group-flush" id="approved-player-list">
                                     @forelse ($tournament->players->where('status', 'approved') as $player)
-                                        <li
-                                            class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div class="flex-grow-1">
-                                                    <span
-                                                        class="me-2 fw-bold text-success player-stt">{{ $loop->iteration }}.</span>
-                                                    <span id="name-{{ $player->id }}"
-                                                        class="fw-bold fs-5">{{ $player->name }}</span>
+                                        <li class="list-group-item bg-dark text-white p-0">
+                                            {{-- Wrapper chính: Dùng d-flex để chia cột --}}
+                                            <div class="d-flex w-100 align-items-center">
 
-                                                    {{-- Form sửa tên (Giữ nguyên logic cũ) --}}
-                                                    <form id="form-{{ $player->id }}"
-                                                        class="d-none ajax-edit-form d-inline"
-                                                        action="{{ route('player.update', $player->id) }}"
-                                                        method="POST">
-                                                        @csrf @method('PUT')
-                                                        <input type="text" name="name" value="{{ $player->name }}"
-                                                            class="form-control form-control-sm d-inline-block w-auto">
-                                                        <button type="submit" class="btn btn-sm btn-success">Lưu</button>
-                                                        <button type="button"
-                                                            class="btn btn-sm btn-secondary cancel-edit"
-                                                            data-id="{{ $player->id }}">Hủy</button>
-                                                    </form>
+                                                {{-- PHẦN 1: TÊN (CHIẾM 60%) --}}
+                                                <div class="p-3 d-flex justify-content-between align-items-center"
+                                                    style="width: 60%;">
+                                                    <div class="flex-grow-1">
+                                                        <span
+                                                            class="me-2 fw-bold text-success player-stt">{{ $loop->iteration }}.</span>
+                                                        <span id="name-{{ $player->id }}"
+                                                            class="fw-bold fs-5">{{ $player->name }}</span>
+
+                                                        {{-- Form sửa tên (Giữ nguyên code cũ) --}}
+                                                        <form id="form-{{ $player->id }}"
+                                                            class="d-none ajax-edit-form d-inline"
+                                                            action="{{ route('player.update', $player->id) }}"
+                                                            method="POST">
+                                                            @csrf @method('PUT')
+                                                            <input type="text" name="name"
+                                                                value="{{ $player->name }}"
+                                                                class="form-control form-control-sm d-inline-block w-auto">
+                                                            <button type="submit"
+                                                                class="btn btn-sm btn-success">Lưu</button>
+                                                            <button type="button"
+                                                                class="btn btn-sm btn-secondary cancel-edit"
+                                                                data-id="{{ $player->id }}">Hủy</button>
+                                                        </form>
+                                                    </div>
+
+                                                    {{-- Các nút thao tác (Giữ nguyên code cũ) --}}
+                                                    @if ($tournament->creator_id == auth()->id() && $tournament->status == 'open')
+                                                        <div class="ms-2 d-flex align-items-center gap-2">
+                                                            <button type="button"
+                                                                class="btn btn-sm btn-outline-warning edit-btn"
+                                                                data-id="{{ $player->id }}">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <form class="d-inline ajax-delete-form"
+                                                                action="{{ route('player.delete', $player->id) }}"
+                                                                method="POST">
+                                                                @csrf @method('DELETE')
+                                                                <button type="submit"
+                                                                    class="btn btn-sm btn-outline-danger">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    @endif
                                                 </div>
 
-                                                @if ($tournament->creator_id == auth()->id() && $tournament->status == 'open')
-                                                    <div class="ms-2 d-flex align-items-center gap-2">
-                                                        <button type="button"
-                                                            class="btn btn-sm btn-outline-warning edit-btn"
-                                                            data-id="{{ $player->id }}"><i
-                                                                class="bi bi-pencil"></i></button>
-                                                        <form class="d-inline ajax-delete-form"
-                                                            action="{{ route('player.delete', $player->id) }}"
-                                                            method="POST">
-                                                            @csrf @method('DELETE')
-                                                            <button type="submit"
-                                                                class="btn btn-sm btn-outline-danger"><i
-                                                                    class="bi bi-trash"></i></button>
-                                                        </form>
+                                                {{-- PHẦN 2: THÀNH VIÊN (CHIẾM 40%) - Chỉ hiện khi mode là team --}}
+                                                @if (isset($tournament->mode) && $tournament->mode == 'team')
+                                                    <div class="p-2 border-start border-secondary"
+                                                        style="width: 40%; border-left: 2px solid #555;">
+                                                        <small class="text-white d-block mb-1">Thành viên:</small>
+
+                                                        {{-- Wrapper tạo thanh cuộn (Scroll) --}}
+                                                        <div class="member-scroll-wrapper pe-1"
+                                                            style="max-height: 100px; overflow-y: auto;">
+                                                            <ul
+                                                                class="list-unstyled mb-2 member-list-{{ $player->id }}">
+                                                                @foreach ($player->members as $member)
+                                                                    <li
+                                                                        class="d-flex justify-content-between align-items-center text-white small mb-1 bg-secondary bg-opacity-10 px-2 py-1 rounded">
+                                                                        <span> {{ $member->member_name }}</span>
+                                                                        @if ($tournament->creator_id == auth()->id())
+                                                                            <i class="bi bi-x text-danger cursor-pointer delete-member-btn"
+                                                                                style="cursor: pointer;"
+                                                                                data-url="{{ route('member.delete', $member->id) }}"
+                                                                                onclick="deleteMember(this)"></i>
+                                                                        @endif
+                                                                    </li>
+                                                                @endforeach
+                                                            </ul>
+                                                        </div>
+
+                                                        {{-- Form thêm thành viên (Giữ nguyên code cũ, nằm dưới phần scroll) --}}
+                                                        @if ($tournament->creator_id == auth()->id())
+                                                            <form class="d-flex gap-2 ajax-add-member-form mt-1"
+                                                                action="{{ route('member.add', $player->id) }}"
+                                                                method="POST">
+                                                                @csrf
+                                                                <input type="text" name="member_name"
+                                                                    class="form-control form-control-sm bg-dark text-white border-secondary py-0"
+                                                                    style="font-size: 0.85rem;"
+                                                                    placeholder="Thêm thành viên..." required>
+                                                                <button class="btn btn-sm btn-outline-info py-0">
+                                                                    <i class="bi bi-plus"></i>
+                                                                </button>
+                                                            </form>
+                                                        @endif
                                                     </div>
                                                 @endif
                                             </div>
-
-                                            {{-- HÀNG 2: QUẢN LÝ THÀNH VIÊN (CHỈ HIỆN KHI MODE LÀ TEAM) --}}
-                                            @if (isset($tournament->mode) && $tournament->mode == 'team')
-                                                <div class="mt-2 ps-4 border-start border-secondary"
-                                                    style="border-left: 2px solid #555;">
-                                                    <small class="text-muted d-block mb-1">Thành viên:</small>
-
-                                                    {{-- Danh sách thành viên --}}
-                                                    <ul class="list-unstyled mb-2 member-list-{{ $player->id }}">
-                                                        @foreach ($player->members as $member)
-                                                            <li
-                                                                class="d-flex justify-content-between align-items-center text-white-50 small mb-1 bg-secondary bg-opacity-10 px-2 py-1 rounded">
-                                                                <span>- {{ $member->member_name }}</span>
-                                                                @if ($tournament->creator_id == auth()->id())
-                                                                    <i class="bi bi-x text-danger cursor-pointer delete-member-btn"
-                                                                        style="cursor: pointer;"
-                                                                        data-url="{{ route('member.delete', $member->id) }}"
-                                                                        onclick="deleteMember(this)"></i>
-                                                                @endif
-                                                            </li>
-                                                        @endforeach
-                                                    </ul>
-
-                                                    {{-- Form thêm thành viên nhỏ --}}
-                                                    @if ($tournament->creator_id == auth()->id())
-                                                        <form class="d-flex gap-2 ajax-add-member-form"
-                                                            action="{{ route('member.add', $player->id) }}"
-                                                            method="POST">
-                                                            @csrf
-                                                            <input type="text" name="member_name"
-                                                                class="form-control form-control-sm bg-dark text-white border-secondary py-0"
-                                                                style="font-size: 0.85rem;"
-                                                                placeholder="Thêm thành viên..." required>
-                                                            <button class="btn btn-sm btn-outline-info py-0"><i
-                                                                    class="bi bi-plus"></i></button>
-                                                        </form>
-                                                    @endif
-                                                </div>
-                                            @endif
                                         </li>
                                     @empty
                                     @endforelse
@@ -627,6 +664,75 @@
                 </div>
             </div>
         </div>
+
+
+        {{-- MODAL ĐĂNG KÝ ĐỘI --}}
+        @if ($tournament->mode == 'team')
+            <div class="modal fade" id="joinTeamModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content bg-dark text-white border-secondary shadow-lg">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title text-uppercase fw-bold" style="color: #1b7c00">
+                                Đăng ký tham gia thi đấu
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <form action="{{ route('tournament.join', $tournament->id) }}" method="POST"
+                            class="ajax-join-team-form">
+                            @csrf
+                            <div class="modal-body">
+                                {{-- Tên Đội --}}
+                                <div class="mb-4">
+                                    <label class="form-label text-white fw-bold">Tên Đội tuyển</label>
+                                    <input type="text" name="team_name"
+                                        class="form-control bg-dark text-white border-secondary"
+                                        placeholder="Ví dụ: T1, GAM Esports..." required>
+                                    <div class="form-text text-muted">Bạn sẽ là Đội trưởng của đội này.</div>
+                                </div>
+
+                                {{-- Danh sách thành viên --}}
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label text-white fw-bold mb-0">Danh sách thành viên</label>
+                                        <button type="button" class="btn btn-sm btn-outline-success"
+                                            id="btn-add-member-input">
+                                            <i class="bi bi-plus-lg"></i> Thêm thành viên
+                                        </button>
+                                    </div>
+
+                                    <div id="member-inputs-container"
+                                        class="team-member-scroll border border-secondary rounded p-2">
+                                        {{-- Mặc định hiện sẵn 2 dòng --}}
+                                        <div class="input-group mb-2">
+                                            <span
+                                                class="input-group-text bg-secondary border-secondary text-white">1</span>
+                                            <input type="text" name="members[]"
+                                                class="form-control bg-dark text-white border-secondary"
+                                                placeholder="Tên thành viên..." required>
+                                        </div>
+                                        <div class="input-group mb-2">
+                                            <span
+                                                class="input-group-text bg-secondary border-secondary text-white">2</span>
+                                            <input type="text" name="members[]"
+                                                class="form-control bg-dark text-white border-secondary"
+                                                placeholder="Tên thành viên..." required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-footer border-secondary">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                <button type="submit" class="btn fw-bold text-white"
+                                    style="background-color: #1b7c00">Gửi đăng
+                                    ký</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <div class="modal fade" id="joinResultModal" tabindex="-1" aria-labelledby="joinResultModalLabel"
             aria-hidden="true">
@@ -647,26 +753,7 @@
         </div>
     </div>
 
-    {{-- === MODAL THÔNG BÁO KẾT QUẢ ĐĂNG KÝ === --}}
-    <div class="modal fade" id="joinResultModal" tabindex="-1" aria-labelledby="joinResultModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-secondary">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="joinResultModalLabel">
-                        <i class="bi bi-info-circle me-2"></i>Thông báo
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                {{-- Nơi hiển thị nội dung thông báo --}}
-                <div class="modal-body" id="joinResultMessage"></div>
 
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     {{-- SCRIPT QUẢN LÝ NGƯỜI CHƠI & ĐỘI --}}
     <script>
@@ -1413,12 +1500,12 @@
                             // Tạo dòng thành viên mới (Copy y hệt Blade)
                             const li = document.createElement('li');
                             li.className =
-                                'd-flex justify-content-between align-items-center text-white-50 small mb-1 bg-secondary bg-opacity-10 px-2 py-1 rounded';
+                                'd-flex justify-content-between align-items-center text-white small mb-1 bg-secondary bg-opacity-10 px-2 py-1 rounded';
 
                             // Nút xóa thành viên
                             // Lưu ý: data.id là ID thành viên server trả về
                             li.innerHTML = `
-                            <span>- ${input.value}</span>
+                            <span>${input.value}</span>
                             <i class="bi bi-x text-danger cursor-pointer"
                                style="cursor: pointer;"
                                onclick="deleteMemberById(this, ${data.id})"></i>
@@ -1607,6 +1694,167 @@
 
             // Chạy lần đầu
             updateAddSection();
+        });
+    </script>
+
+    {{-- MODAL ĐĂNG KÝ ĐỘI --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hàm cập nhật lại số thứ tự (1, 2, 3...)
+            function updateIndices() {
+                const container = document.getElementById('member-inputs-container');
+                if (!container) return;
+
+                // Lấy tất cả các dòng input-group
+                const rows = container.querySelectorAll('.input-group');
+
+                rows.forEach((row, index) => {
+                    // Tìm thẻ span chứa số thứ tự
+                    const span = row.querySelector('.input-group-text');
+                    if (span) {
+                        span.textContent = index + 1; // Gán số thứ tự mới (index bắt đầu từ 0 nên phải +1)
+                    }
+                });
+            }
+
+            // 1. XỬ LÝ THÊM DÒNG
+            const addMemberBtn = document.getElementById('btn-add-member-input');
+            const memberContainer = document.getElementById('member-inputs-container');
+
+            if (addMemberBtn && memberContainer) {
+                addMemberBtn.addEventListener('click', function() {
+                    const div = document.createElement('div');
+                    div.className = 'input-group mb-2 animate__animated animate__fadeIn';
+
+                    // Lưu ý: Nút xóa bây giờ gọi hàm removeMemberRow(this) thay vì remove() trực tiếp
+                    div.innerHTML = `
+                        <span class="input-group-text bg-secondary border-secondary text-white"></span>
+                        <input type="text" name="members[]" class="form-control bg-dark text-white border-secondary" placeholder="Tên thành viên..." required>
+                        <button type="button" class="btn btn-outline-danger" onclick="removeMemberRow(this)">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    `;
+                    memberContainer.appendChild(div);
+
+                    // Gọi hàm đánh số lại ngay sau khi thêm
+                    updateIndices();
+                });
+            }
+
+            // Hàm xóa dòng (được gọi từ onclick của nút X)
+            window.removeMemberRow = function(btn) {
+                // Xóa dòng chứa nút đó
+                btn.parentElement.remove();
+                // Quan trọng: Gọi hàm đánh số lại sau khi xóa
+                updateIndices();
+            }
+
+            // 2. XỬ LÝ AJAX GỬI FORM ĐỘI (BẢN FINAL FIX LỖI)
+            const joinTeamForm = document.querySelector('.ajax-join-team-form');
+            if (joinTeamForm) {
+                joinTeamForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const btn = this.querySelector('button[type="submit"]');
+                    const originalText = btn.innerHTML;
+
+                    // 1. Khóa nút ngay lập tức
+                    btn.disabled = true;
+                    btn.innerHTML =
+                        '<span class="spinner-border spinner-border-sm"></span> Đang gửi...';
+
+                    try {
+                        const res = await fetch(this.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json' // Quan trọng: Báo server trả về JSON
+                            },
+                            body: new FormData(this)
+                        });
+
+                        // Đọc text trước để debug
+                        const text = await res.text();
+                        console.log("Server trả về:", text); // <--- BẠN XEM CÁI NÀY TRONG F12 NẾU LỖI
+
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (err) {
+                            throw new Error(
+                                "Dữ liệu trả về không đúng định dạng JSON. Xem Console F12.");
+                        }
+
+                        // 2. Tắt Modal nhập liệu
+                        const teamModalEl = document.getElementById('joinTeamModal');
+                        const teamModal = bootstrap.Modal.getInstance(teamModalEl);
+                        if (teamModal) teamModal.hide();
+
+                        // 3. Hiện thông báo
+                        const msgModalEl = document.getElementById('joinResultModal');
+                        const msgContent = document.getElementById('joinResultMessage');
+
+                        if (msgModalEl && msgContent) {
+                            let icon = '';
+                            let colorClass = '';
+
+                            if (data.status === 'success') {
+                                icon =
+                                    '<i class="bi bi-check-circle-fill text-success me-2" style="font-size: 2rem;"></i>';
+                                colorClass = 'text-white';
+                            } else if (data.status === 'warning') {
+                                icon =
+                                    '<i class="bi bi-exclamation-triangle-fill text-warning me-2" style="font-size: 2rem;"></i>';
+                                colorClass = 'text-warning';
+                            } else {
+                                icon =
+                                    '<i class="bi bi-x-circle-fill text-danger me-2" style="font-size: 2rem;"></i>';
+                                colorClass = 'text-danger';
+                            }
+
+                            msgContent.innerHTML = `
+                                <div class="text-center py-3">
+                                    <div class="mb-3">${icon}</div>
+                                    <h5 class="${colorClass} fw-bold">${data.message || 'Có lỗi xảy ra'}</h5>
+                                </div>
+                            `;
+
+                            const msgModal = new bootstrap.Modal(msgModalEl);
+                            msgModal.show();
+                        } else {
+                            alert(data.message);
+                        }
+
+                        // 4. Xử lý nút bấm sau khi xong
+                        if (res.ok && data.status === 'success') {
+                            const mainBtn = document.querySelector('[data-bs-target="#joinTeamModal"]');
+                            if (mainBtn) {
+                                mainBtn.disabled = true;
+                                mainBtn.innerHTML = '<i class="bi bi-check-lg"></i> Đã gửi yêu cầu';
+                                mainBtn.classList.remove('btn-primary');
+                                mainBtn.classList.add('btn-secondary');
+                            }
+                        } else {
+                            // Mở lại nút để gửi lại nếu lỗi
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+
+                            // Tự động mở lại form để sửa nếu không thành công
+                            if (data.status !== 'success' && teamModal) {
+                                setTimeout(() => teamModal.show(), 500);
+                            }
+                        }
+
+                    } catch (err) {
+                        console.error(err);
+                        alert('Lỗi: ' + err.message);
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    }
+                });
+            }
+
+            // Chạy update lần đầu để đảm bảo số 1, 2 hiện đúng
+            updateIndices();
         });
     </script>
 @endsection

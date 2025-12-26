@@ -795,6 +795,28 @@ h4.text-info {
     background: #1b7c00;
 }
 
+/* Modal danh sách đội */
+.team-member-scroll {
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 5px;
+
+    scrollbar-width: thin;
+    scrollbar-color: #6c757d #212529;
+}
+
+.team-member-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.team-member-scroll::-webkit-scrollbar-track {
+    background: #212529;
+}
+.team-member-scroll::-webkit-scrollbar-thumb {
+    background-color: #6c757d;
+    border-radius: 10px;
+}
+
 /* -----Bracket----- */
 /* BỤC VINH QUANG (PODIUM) */
 .podium-section {
