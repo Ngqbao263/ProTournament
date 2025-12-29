@@ -78,18 +78,19 @@
 <!-- Offcanvas menu (mobile) -->
 <div class="offcanvas offcanvas-start text-white bg-success" tabindex="-1" id="mobileNav">
     <div class="offcanvas-header">
-        <h5 class="offcanvas-title">MyLeague</h5>
+        <h5 class="offcanvas-title">Pro Tournament</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
     </div>
 
     <div class="offcanvas-body">
         <ul class="list-unstyled mb-4">
             <li class="mb-2"><a href="{{ route('home') }}" class="text-white text-decoration-none">Trang chủ</a></li>
-            <li class="mb-2"><a href="#" class="text-white text-decoration-none">Giải đấu</a></li>
-            <li class="mb-2"><a href="#" class="text-white text-decoration-none">Đội thi đấu</a></li>
-            <li class="mb-2"><a href="#" class="text-white text-decoration-none">Bảng giá</a></li>
-            <li class="mb-2"><a href="#" class="text-white text-decoration-none">Blog</a></li>
-            <li class="mb-2"><a href="#" class="text-white text-decoration-none">Mua sắm</a></li>
+            <li class="mb-2"><a href="{{ route('list') }}" class="text-white text-decoration-none">Tất cả giải
+                    đấu</a></li>
+            <li class="mb-2"><a href="{{ route('tournaments.create') }}" class="text-white text-decoration-none">Tạo
+                    giải đấu</a></li>
+            <li class="mb-2"><a href="{{ route('tournaments.my') }}" class="text-white text-decoration-none">Giải đấu
+                    của tôi</a></li>
         </ul>
         <hr class="border-light">
 

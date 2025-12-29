@@ -33,12 +33,12 @@ class HomeController extends Controller
     {
         $query = Tournament::query();
 
-        // 1. Tìm kiếm theo tên (Search)
+        // Tìm kiếm theo tên
         if ($request->has('search') && $request->search != '') {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // 2. Lọc theo Thể loại (Category)
+        // Lọc theo Thể loại
         if ($request->has('category') && $request->category != '') {
             $sportGames = ["Bóng đá", "Bóng rổ", "Cầu lông", "Bóng chuyền", "Bơi lội", "Chạy bộ"];
             $eSportGames = ["Liên Minh Huyền Thoại", "Valorant", "CS2", "PUBG Mobile", "Tốc Chiến", "Dota 2"];
@@ -50,7 +50,7 @@ class HomeController extends Controller
             }
         }
 
-        // 3. Lọc theo Bộ môn (Game Name)
+        // Lọc theo Bộ môn
         if ($request->has('game_name') && $request->game_name != '') {
             $query->where('game_name', $request->game_name);
         }

@@ -1284,3 +1284,7 @@ h4.text-info {
     padding: 4px 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5); /* Tạo bóng đổ cho nổi bật */
 }
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}

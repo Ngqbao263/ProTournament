@@ -79,14 +79,14 @@
                             $tournament->creator_id != auth()->id() &&
                                 $tournament->status == 'open' &&
                                 $tournament->players->where('status', 'approved')->count() < $tournament->max_player)
-                            {{-- A. Đăng ký ĐỘI --}}
+                            {{-- Đăng ký ĐỘI --}}
                             @if ($tournament->mode == 'team')
                                 <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal"
                                     data-bs-target="#joinTeamModal">
                                     Đăng ký Đội
                                 </button>
 
-                                {{-- B. Đăng ký CÁ NHÂN --}}
+                                {{-- Đăng ký CÁ NHÂN --}}
                             @else
                                 <form action="{{ route('tournament.join', $tournament->id) }}" method="POST"
                                     class="ajax-join-form">
@@ -141,342 +141,22 @@
         <div class="tab-content" id="tournamentTabContent">
             {{-- Tab Mô tả --}}
             <div class="tab-pane fade show active" id="desc-content" role="tabpanel">
-                <div class="text-center py-5">
-                    <i class="bi bi-info-circle me-2" style="font-size: 3rem; color: #444;"></i>
-                    <p class="mt-3">
-                        {!! $tournament->description ?? 'Chưa có mô tả cho giải đấu này.' !!}
-                    </p>
-                </div>
-
-
+                @include('home.tournaments.tab.tab-desc')
             </div>
 
             {{-- Sơ đồ thi đấu --}}
             <div class="tab-pane fade" id="bracket-content" role="tabpanel">
-                @if ($tournament->status != 'open')
-                    <div class="container-fluid">
-                        @php $matchCounter = 1; @endphp
-                        <div class="bracket-container" id="bracket-container">
-                            <svg id="bracket-lines"></svg>
-
-                            @php $totalRounds = $rounds->count(); @endphp
-
-                            @foreach ($rounds as $roundNumber => $matches)
-                                <div class="round-column">
-                                    <div class="round-title">
-                                        @if ($roundNumber == $totalRounds)
-                                            {{-- Vòng cuối cùng: Chung kết --}}
-                                            @if ($matches->contains('match_index', 1))
-                                                Chung Kết & Hạng 3
-                                            @else
-                                                Chung Kết
-                                            @endif
-                                        @elseif ($roundNumber == $totalRounds - 1)
-                                            {{-- Kế cuối: Bán kết --}}
-                                            Bán Kết
-                                        @elseif ($roundNumber == $totalRounds - 2)
-                                            {{-- Kế của kế cuối: Tứ kết --}}
-                                            Tứ Kết
-                                        @else
-                                            {{-- Còn lại --}}
-                                            Vòng {{ $roundNumber }}
-                                        @endif
-                                    </div>
-                                    <div class="match-list">
-                                        @foreach ($matches as $match)
-                                            <div class="match-card" id="match-{{ $match->id }}"
-                                                data-match-id="{{ $match->id }}"
-                                                data-round="{{ $match->round_number }}"
-                                                data-index="{{ $match->match_index }}">
-
-                                                <div class="player-row">
-                                                    <span
-                                                        class="player-name {{ $match->winner_id && $match->winner_id == $match->player1_id ? 'winner' : '' }} {{ $match->winner_id && $match->winner_id == $match->player2_id ? 'loser' : '' }}">
-                                                        {{ $match->player1 ? $match->player1->name : '---' }}
-                                                    </span>
-                                                    <input type="number" class="score-input"
-                                                        value="{{ $match->score1 }}" data-match-id="{{ $match->id }}"
-                                                        data-player="1"
-                                                        {{ !$match->player1 || !$match->player2 || $tournament->creator_id != auth()->id() ? 'disabled' : '' }}>
-                                                </div>
-                                                <div class="player-row">
-                                                    <span
-                                                        class="player-name {{ $match->winner_id && $match->winner_id == $match->player2_id ? 'winner' : '' }} {{ $match->winner_id && $match->winner_id == $match->player1_id ? 'loser' : '' }}">
-                                                        {{ $match->player2 ? $match->player2->name : '---' }}
-                                                    </span>
-                                                    <input type="number" class="score-input"
-                                                        value="{{ $match->score2 }}" data-match-id="{{ $match->id }}"
-                                                        data-player="2"
-                                                        {{ !$match->player1 || !$match->player2 || $tournament->creator_id != auth()->id() ? 'disabled' : '' }}>
-                                                </div>
-                                                <div class="text-center mt-1">
-                                                    <small style="font-size: 10px; color: white">Trận
-                                                        #{{ $matchCounter++ }}</small>
-                                                    @if ($match->match_index == 1 && $loop->parent->last)
-                                                        <span class="badge bg-warning text-dark"
-                                                            style="font-size: 9px">Tranh hạng 3</span>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @else
-                    <div class="text-center py-5">
-                        <i class="bi bi-diagram-3" style="font-size: 3rem; color: #444;"></i>
-                        <p class="mt-3">Sơ đồ thi đấu sẽ hiển thị khi giải đấu bắt đầu.</p>
-                    </div>
-                @endif
+                @include('home.tournaments.tab.tab-bracket')
             </div>
 
             {{-- Tab Lịch thi đấu --}}
             <div class="tab-pane fade" id="schedule-content" role="tabpanel">
-                @if ($tournament->status == 'open')
-                    <div class="text-center py-5 text-muted">
-                        <i class="bi bi-calendar-range" style="font-size: 3rem; color: #444;"></i>
-                        <p class="mt-3">Lịch thi đấu sẽ hiển thị sau khi giải bắt đầu.</p>
-                    </div>
-                @else
-                    <div class="container-fluid mt-4">
-
-                        @php $totalRounds = $rounds->count(); @endphp
-
-                        @foreach ($rounds as $roundNumber => $matches)
-                            <div class="mb-5">
-                                <h5 class="text-info border-bottom border-secondary pb-2 mb-4 fw-bold text-uppercase">
-                                    @if ($roundNumber == $totalRounds)
-                                        @if ($matches->contains('match_index', 1))
-                                            Chung Kết & Hạng 3
-                                        @else
-                                            Chung Kết
-                                        @endif
-                                    @elseif ($roundNumber == $totalRounds - 1)
-                                        Bán Kết
-                                    @elseif ($roundNumber == $totalRounds - 2)
-                                        Tứ Kết
-                                    @else
-                                        Vòng {{ $roundNumber }}
-                                    @endif
-                                </h5>
-
-                                <div class="row g-4">
-                                    @php
-                                        $sortedMatches = $matches->sortBy(function ($match) {
-                                            // Nếu có giờ thi đấu thì lấy timestamp (số giây) để so sánh
-                                            // Nếu chưa có giờ (null) thì gán số cực lớn (99999999999) để đẩy xuống cuối danh sách
-                                            return $match->match_time ? $match->match_time->timestamp : 99999999999;
-                                        });
-                                    @endphp
-                                    @foreach ($sortedMatches as $match)
-                                        <div class="col-md-6 col-lg-4">
-                                            <div class="card bg-dark border-secondary h-100 shadow-sm schedule-card"
-                                                style="background-color: #1e1e1e !important;">
-                                                @if ($match->match_index == 1 && $loop->parent->last)
-                                                    <span class="badge bg-warning text-dark badge-corner-right">
-                                                        Tranh hạng 3
-                                                    </span>
-                                                @endif
-                                                <div class="card-body">
-                                                    {{-- Cặp đấu --}}
-                                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                                        {{-- Player 1 --}}
-                                                        <div class="text-end" style="width: 35%;">
-                                                            <span
-                                                                class="fw-bold {{ $match->winner_id && $match->winner_id == $match->player1_id ? 'text-white' : 'text-white' }} text-truncate d-block">
-                                                                {{ $match->player1 ? $match->player1->name : '---' }}
-                                                            </span>
-                                                        </div>
-
-                                                        {{-- Tỉ số hoặc VS --}}
-                                                        <div class="text-center" style="width: 30%;">
-                                                            @if ($match->score1 !== null && $match->score2 !== null)
-                                                                <span class="fw-bold text-success px-2 py-1 rounded"
-                                                                    style="background: #333; border: 1px solid #555;">
-                                                                    {{ $match->score1 }} - {{ $match->score2 }}
-                                                                </span>
-                                                            @else
-                                                                <span class="text-success fw-bold small">VS</span>
-                                                            @endif
-                                                        </div>
-
-                                                        {{-- Player 2 --}}
-                                                        <div class="text-start" style="width: 35%;">
-                                                            <span
-                                                                class="fw-bold {{ $match->winner_id && $match->winner_id == $match->player2_id ? 'text-white' : 'text-white' }} text-truncate d-block">
-                                                                {{ $match->player2 ? $match->player2->name : '---' }}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                    {{-- Khu vực chỉnh giờ (Chỉ hiện cho chủ giải) --}}
-                                                    @if ($tournament->creator_id == auth()->id())
-                                                        <form class="ajax-time-form d-flex gap-2 align-items-center"
-                                                            action="{{ route('matches.time.update', $match->id) }}"
-                                                            method="POST">
-                                                            @csrf
-                                                            <input type="datetime-local" name="match_time"
-                                                                class="form-control form-control-sm bg-dark text-white border-secondary"
-                                                                value="{{ $match->match_time ? $match->match_time->format('Y-m-d\TH:i') : '' }}">
-                                                            <button type="submit" class="btn btn-sm btn-outline-success"
-                                                                title="Lưu giờ">
-                                                                <i class="bi bi-check-lg"></i>
-                                                            </button>
-                                                        </form>
-                                                    @else
-                                                        {{-- Hiển thị cho người xem --}}
-                                                        <div class="text-center py-2 rounded"
-                                                            style="background: rgba(255,255,255,0.05);">
-                                                            @if ($match->match_time)
-                                                                <div class="text-warning fw-bold">
-                                                                    {{ $match->match_time->format('H:i') }}
-                                                                </div>
-                                                                <div class="text-white small">
-                                                                    {{ $match->match_time->format('d/m/Y') }}
-                                                                </div>
-                                                            @else
-                                                                <span class="text-white fst-italic small">Chưa xếp
-                                                                    lịch</span>
-                                                            @endif
-                                                        </div>
-                                                    @endif
-
-                                                    <div
-                                                        class="text-center mt-2 d-flex flex-column align-items-center gap-1">
-                                                        @if ($match->score1 !== null)
-                                                            <span class="badge bg-secondary">Đã kết thúc</span>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
+                @include('home.tournaments.tab.tab-schedule')
             </div>
 
             {{-- Tab Bảng xếp hạng --}}
             <div class="tab-pane fade" id="ranking-content" role="tabpanel">
-                {{-- Logic tìm ra Top 3 --}}
-                @php
-                    $finalRound = $rounds->last();
-                    $finalMatch = $finalRound ? $finalRound->firstWhere('match_index', 0) : null;
-                    $thirdMatch = $finalRound ? $finalRound->firstWhere('match_index', 1) : null;
-
-                    $champion = $finalMatch && $finalMatch->winner_id ? $finalMatch->winner : null;
-                    $runnerUp =
-                        $finalMatch && $finalMatch->winner_id
-                            ? ($finalMatch->winner_id == $finalMatch->player1_id
-                                ? $finalMatch->player2
-                                : $finalMatch->player1)
-                            : null;
-                    $thirdPlace = $thirdMatch && $thirdMatch->winner_id ? $thirdMatch->winner : null;
-                @endphp
-
-                {{-- Bục vinh danh --}}
-                @if ($champion)
-                    <div class="podium-section text-center mb-5 animate__animated animate__fadeInDown">
-                        <h2 class="fw-bold text-uppercase mb-4"
-                            style="letter-spacing: 2px; color: #f1c40f; text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);">
-                            <i class="bi bi-trophy-fill me-2"></i>Kết Quả Chung Cuộc
-                        </h2>
-                        <div class="row justify-content-center align-items-end gx-4">
-                            <div class="col-4 col-md-3 order-1">
-                                <div class="podium-card silver">
-                                    <div class="medal">🥈</div>
-                                    <div class="player-name">{{ $runnerUp->name ?? 'Á Quân' }}</div>
-                                    <div class="rank-title">Hạng Nhì</div>
-                                </div>
-                            </div>
-                            <div class="col-4 col-md-4 order-2">
-                                <div class="podium-card gold">
-                                    <div class="medal">🥇</div>
-                                    <div class="crown"><i class="bi bi-crown-fill"></i></div>
-                                    <div class="player-name">{{ $champion->name }}</div>
-                                    <div class="rank-title">VÔ ĐỊCH</div>
-                                </div>
-                            </div>
-                            <div class="col-4 col-md-3 order-3">
-                                <div class="podium-card bronze">
-                                    <div class="medal">🥉</div>
-                                    <div class="player-name">{{ $thirdPlace->name ?? 'Hạng 3' }}</div>
-                                    <div class="rank-title">Hạng Ba</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
-                <div class="container-fluid">
-                    {{-- Nếu giải chưa bắt đầu thì báo chưa có dữ liệu --}}
-                    @if ($tournament->status == 'open')
-                        <div class="text-center py-5 text-muted">
-                            <i class="bi bi-bar-chart-line" style="font-size: 3rem; color: #444"></i>
-                            <p class="mt-3">Bảng xếp hạng sẽ cập nhật khi giải đấu bắt đầu.</p>
-                        </div>
-                    @else
-                        {{-- Nếu giải đã chạy hoặc kết thúc thì hiện Bảng --}}
-                        <div class="card bg-dark border-secondary shadow">
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-dark table-hover mb-0 align-middle">
-                                        <thead class="bg-secondary text-uppercase small text-white">
-                                            <tr>
-                                                <th class="text-center py-3" style="width: 60px;">#</th>
-                                                <th class="py-3">Người chơi</th>
-                                                <th class="text-center py-3">Thành tích</th>
-                                                <th class="text-center py-3">Thắng</th>
-                                                <th class="text-center py-3">Hiệu số</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {{-- Duyệt qua biến $rankings được truyền từ Controller --}}
-                                            @foreach ($rankings as $rank)
-                                                <tr class="{{ $loop->first ? 'table-active border-warning' : '' }}">
-                                                    {{-- Cột Thứ hạng --}}
-                                                    <td class="text-center fw-bold fs-5">
-                                                        @if (isset($rank['medal']) && $rank['medal'])
-                                                            {{ $rank['medal'] }}
-                                                        @else
-                                                            <span class="text-secondary">{{ $loop->iteration }}</span>
-                                                        @endif
-                                                    </td>
-
-                                                    {{-- Cột Người chơi --}}
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <span class="fw-bold">{{ $rank['player']->name }}</span>
-                                                        </div>
-                                                    </td>
-
-                                                    {{-- Cột Danh hiệu (Vô địch, Á quân...) --}}
-                                                    <td class="text-center">
-                                                        {!! $rank['rank_label'] !!}
-                                                    </td>
-
-                                                    {{-- Cột Số trận thắng --}}
-                                                    <td class="text-center text-success fw-bold">
-                                                        {{ $rank['wins'] }}
-                                                    </td>
-
-                                                    {{-- Cột Hiệu số --}}
-                                                    <td class="text-center text-info">
-                                                        {{ $rank['score_diff'] > 0 ? '+' : '' }}{{ $rank['score_diff'] }}
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                </div>
+                @include('home.tournaments.tab.tab-ranking')
             </div>
         </div>
 
@@ -489,7 +169,7 @@
 
                     <div class="modal-header text-white">
                         <h5 class="modal-title" id="playerModalLabel" style="color:#1b7c00">
-                            <i class="bi bi-people-fill me-2"></i>Danh sách người chơi
+                            DANH SÁCH
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
@@ -504,16 +184,40 @@
                                     <p class="fst-italic">Không có ai đang chờ duyệt.</p>
                                 @else
                                     <div class="player-list-scroll mb-3">
-                                        <ul class="list-group list-group-flush">
+                                        <ul class="list-group list-group-flush gap-2"> {{-- Thêm gap-2 để các dòng cách nhau ra --}}
                                             @foreach ($tournament->players->where('status', 'pending') as $player)
                                                 <li
-                                                    class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center">
-                                                    {{ $player->name }}
-                                                    <form action="{{ route('player.approve', $player->id) }}"
-                                                        method="POST" class="d-inline">
-                                                        @csrf
-                                                        <button class="btn btn-sm btn-success">Duyệt</button>
-                                                    </form>
+                                                    class="list-group-item bg-dark text-white border border-secondary rounded d-flex justify-content-between align-items-center p-3 shadow-sm">
+
+                                                    {{-- Tên người chơi --}}
+                                                    <span class="fs-5 text-truncate pe-2" style="max-width: 50%;">
+                                                        {{ $player->name }}
+                                                    </span>
+
+                                                    {{-- Khu vực nút bấm (Căn chỉnh thẳng hàng) --}}
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        {{-- 1. Nút DUYỆT (Xanh) --}}
+                                                        <form action="{{ route('player.approve', $player->id) }}"
+                                                            method="POST" class="m-0">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-sm btn-success px-3"
+                                                                style="min-width: 90px;">
+                                                                <i class="bi bi-check-circle-fill me-1"></i> Duyệt
+                                                            </button>
+                                                        </form>
+
+                                                        {{-- 2. Nút TỪ CHỐI (Đỏ) --}}
+                                                        <form action="{{ route('player.delete', $player->id) }}"
+                                                            method="POST" class="m-0"
+                                                            onsubmit="return confirm('Bạn có chắc muốn từ chối đội {{ $player->name }}?');">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-sm btn-danger px-3"
+                                                                style="min-width: 100px;">
+                                                                <i class="bi bi-x-circle-fill me-1"></i> Từ chối
+                                                            </button>
+                                                        </form>
+                                                    </div>
                                                 </li>
                                             @endforeach
                                         </ul>
@@ -548,9 +252,6 @@
                         @endif
 
                         <div>
-                            {{-- <h5 class="fw-semibold text-success mb-3">
-                                {{ isset($tournament->mode) && $tournament->mode == 'team' ? 'Danh sách Đội' : 'Danh sách Người chơi' }}
-                            </h5> --}}
                             <div class="player-list-scroll">
                                 <ul class="list-group list-group-flush" id="approved-player-list">
                                     @forelse ($tournament->players->where('status', 'approved') as $player)
@@ -567,7 +268,7 @@
                                                         <span id="name-{{ $player->id }}"
                                                             class="fw-bold fs-5">{{ $player->name }}</span>
 
-                                                        {{-- Form sửa tên (Giữ nguyên code cũ) --}}
+                                                        {{-- Form sửa tên --}}
                                                         <form id="form-{{ $player->id }}"
                                                             class="d-none ajax-edit-form d-inline"
                                                             action="{{ route('player.update', $player->id) }}"
@@ -584,7 +285,7 @@
                                                         </form>
                                                     </div>
 
-                                                    {{-- Các nút thao tác (Giữ nguyên code cũ) --}}
+                                                    {{-- Các nút thao tác --}}
                                                     @if ($tournament->creator_id == auth()->id() && $tournament->status == 'open')
                                                         <div class="ms-2 d-flex align-items-center gap-2">
                                                             <button type="button"
@@ -1004,8 +705,8 @@
         });
     </script>
 
+    {{-- Nút đăng ký tham gia --}}
     <script>
-        // Xử lý xin tham gia giải đấu
         document.addEventListener('DOMContentLoaded', () => {
             const joinForm = document.querySelector('.ajax-join-form');
 
@@ -1082,332 +783,9 @@
         });
     </script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const inputs = document.querySelectorAll('.score-input');
 
-            inputs.forEach(input => {
-                input.addEventListener('blur', function() { // Sự kiện khi nhập xong và click ra ngoài
-                    const matchId = this.dataset.matchId;
-                    const matchCard = document.getElementById(`match-${matchId}`);
 
-                    // Tìm 2 ô input trong cùng 1 thẻ match-card
-                    const score1Input = matchCard.querySelector('input[data-player="1"]');
-                    const score2Input = matchCard.querySelector('input[data-player="2"]');
-
-                    const score1 = score1Input.value;
-                    const score2 = score2Input.value;
-
-                    // Chỉ gửi request khi CẢ 2 ô đều có dữ liệu
-                    if (score1 !== '' && score2 !== '') {
-                        saveMatchResult(matchId, score1, score2, this);
-                    }
-                });
-            });
-
-            async function saveMatchResult(matchId, score1, score2, inputElement) {
-                const currentCard = document.getElementById(`match-${matchId}`);
-                const currentRound = parseInt(currentCard.dataset.round);
-                const currentIndex = parseInt(currentCard.dataset.index);
-
-                try {
-                    const response = await fetch(`/matches/${matchId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({
-                            score1: parseInt(score1),
-                            score2: parseInt(score2)
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok && data.success) {
-                        // === 1. CẬP NHẬT MÀU SẮC NGAY TẠI TRẬN VỪA NHẬP ===
-                        // Tìm 2 span tên người chơi
-                        const p1Span = currentCard.querySelector('input[data-player="1"]')
-                            .previousElementSibling;
-                        const p2Span = currentCard.querySelector('input[data-player="2"]')
-                            .previousElementSibling;
-
-                        // Reset class cũ
-                        p1Span.classList.remove('winner', 'loser');
-                        p2Span.classList.remove('winner', 'loser');
-
-                        // Gán class mới dựa trên winner_id trả về
-                        // data.winner_id là ID của người thắng trong DB
-                        // Chúng ta so sánh data.winner_name với nội dung text để biết ai thắng (hoặc dùng logic điểm số)
-                        if (parseInt(score1) > parseInt(score2)) {
-                            p1Span.classList.add('winner');
-                            p2Span.classList.add('loser');
-                        } else if (parseInt(score2) > parseInt(score1)) {
-                            p2Span.classList.add('winner');
-                            p1Span.classList.add('loser');
-                        }
-
-                        // === 2. XỬ LÝ NGƯỜI THẮNG (VÀO VÒNG TRONG) ===
-                        const nextRound = currentRound + 1;
-                        const nextIndex = Math.floor(currentIndex / 2);
-                        const nextCard = document.querySelector(
-                            `.match-card[data-round="${nextRound}"][data-index="${nextIndex}"]`);
-
-                        if (nextCard && data.winner_name) {
-                            const targetPlayerSlot = (currentIndex % 2 === 0) ? 1 : 2;
-                            const opponentSlot = (targetPlayerSlot === 1) ? 2 : 1;
-
-                            const targetInput = nextCard.querySelector(
-                                `input[data-player="${targetPlayerSlot}"]`);
-                            const targetNameSpan = targetInput.previousElementSibling;
-                            const opponentInput = nextCard.querySelector(
-                                `input[data-player="${opponentSlot}"]`);
-                            const opponentNameSpan = opponentInput.previousElementSibling;
-
-                            targetNameSpan.textContent = data.winner_name;
-                            targetNameSpan.style.color = '#00ff7f';
-                            setTimeout(() => {
-                                targetNameSpan.style.color = '';
-                            }, 1000);
-
-                            if (opponentNameSpan.textContent.trim() !== '---') {
-                                targetInput.disabled = false;
-                                opponentInput.disabled = false;
-                            } else {
-                                targetInput.disabled = true;
-                            }
-                        }
-
-                        // === 3. XỬ LÝ NGƯỜI THUA (VÀO TRANH HẠNG 3) ===
-                        // Kiểm tra xem server có trả về tên người thua không
-                        if (data.loser_name) {
-                            const thirdPlaceCard = document.querySelector(
-                                `.match-card[data-round="${nextRound}"][data-index="1"]`);
-
-                            if (thirdPlaceCard) {
-                                // Logic slot cho hạng 3 tương tự: Trận bán kết 1 (index 0) vào slot 1, BK 2 (index 1) vào slot 2
-                                const loserSlot = (currentIndex % 2 === 0) ? 1 : 2;
-                                const loserOpponentSlot = (loserSlot === 1) ? 2 : 1;
-
-                                const loserInput = thirdPlaceCard.querySelector(
-                                    `input[data-player="${loserSlot}"]`);
-                                const loserNameSpan = loserInput.previousElementSibling;
-                                const opponentInput = thirdPlaceCard.querySelector(
-                                    `input[data-player="${loserOpponentSlot}"]`);
-                                const opponentNameSpan = opponentInput.previousElementSibling;
-
-                                loserNameSpan.textContent = data.loser_name;
-                                loserNameSpan.style.color = '#ffc107'; // Màu vàng cho khác biệt
-                                setTimeout(() => {
-                                    loserNameSpan.style.color = '';
-                                }, 1000);
-
-                                if (opponentNameSpan.textContent.trim() !== '---') {
-                                    loserInput.disabled = false;
-                                    opponentInput.disabled = false;
-                                } else {
-                                    loserInput.disabled = true;
-                                }
-                            }
-                        }
-
-                        // === 4. XỬ LÝ PODIUM (NẾU CÓ DỮ LIỆU) ===
-                        if (data.podium) {
-                            // Điền dữ liệu vào bục
-                            document.getElementById('podium-gold-name').textContent = data.podium.gold;
-                            document.getElementById('podium-silver-name').textContent = data.podium.silver;
-                            document.getElementById('podium-bronze-name').textContent = data.podium.bronze;
-
-                            document.getElementById('podium-gold-char').textContent = data.podium.gold_initial;
-                            document.getElementById('podium-silver-char').textContent = data.podium
-                                .silver_initial;
-                            document.getElementById('podium-bronze-char').textContent = data.podium
-                                .bronze_initial;
-
-                            // Hiện bục lên
-                            const podiumArea = document.querySelector('.podium-section');
-                            if (podiumArea) {
-                                podiumArea.classList.remove('d-none');
-                                podiumArea.scrollIntoView({
-                                    behavior: 'smooth'
-                                });
-                            } else {
-                                // Nếu bục chưa có trong DOM (do load lần đầu ẩn), reload để hiện
-                                window.location.reload();
-                            }
-                        }
-
-                    } else {
-                        alert('Lỗi khi lưu kết quả!');
-                    }
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-        });
-    </script>
-
-    {{-- VẼ NHÁNH --}}
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            function drawBracketLines() {
-                const container = document.getElementById('bracket-container');
-                const svg = document.getElementById('bracket-lines');
-
-                if (!container || !svg) return;
-
-                // Reset SVG
-                svg.innerHTML = '';
-                svg.setAttribute('width', container.scrollWidth);
-                svg.setAttribute('height', container.scrollHeight);
-
-                const matches = document.querySelectorAll('.match-card');
-
-                matches.forEach(match => {
-                    const round = parseInt(match.dataset.round);
-                    const index = parseInt(match.dataset.index);
-
-                    // Tìm trận đấu tiếp theo: Vòng sau, Vị trí index / 2
-                    const nextRound = round + 1;
-                    const nextIndex = Math.floor(index / 2);
-
-                    // Tìm thẻ HTML của trận tiếp theo dựa trên data-round và data-index
-                    const nextMatch = document.querySelector(
-                        `.match-card[data-round="${nextRound}"][data-index="${nextIndex}"]`);
-
-                    if (nextMatch) {
-                        const startRect = match.getBoundingClientRect();
-                        const endRect = nextMatch.getBoundingClientRect();
-                        const containerRect = container.getBoundingClientRect();
-
-                        // Tính tọa độ (trừ đi scroll của container để chính xác)
-                        const scrollLeft = container.scrollLeft;
-                        const scrollTop = container.scrollTop; // Thường là 0
-
-                        // Điểm đầu: Giữa cạnh Phải thẻ trước
-                        const x1 = (startRect.right - containerRect.left) + scrollLeft;
-                        const y1 = (startRect.top + startRect.height / 2 - containerRect.top) + scrollTop;
-
-                        // Điểm cuối: Giữa cạnh Trái thẻ sau
-                        const x2 = (endRect.left - containerRect.left) + scrollLeft;
-                        const y2 = (endRect.top + endRect.height / 2 - containerRect.top) + scrollTop;
-
-                        // Điểm giữa để bẻ cua
-                        const xMid = x1 + (x2 - x1) / 2;
-
-                        // Vẽ dây: Đi thẳng -> Bẻ vuông góc -> Đi thẳng
-                        const pathStr = `M ${x1} ${y1} L ${xMid} ${y1} L ${xMid} ${y2} L ${x2} ${y2}`;
-
-                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                        path.setAttribute("d", pathStr);
-                        path.setAttribute("stroke", "#555"); // Màu dây
-                        path.setAttribute("stroke-width", "2");
-                        path.setAttribute("fill", "none");
-
-                        svg.appendChild(path);
-                    }
-                });
-            }
-
-            // Vẽ ngay khi tải xong
-            setTimeout(drawBracketLines, 100);
-
-            // Vẽ lại khi thay đổi kích thước màn hình
-            window.addEventListener('resize', drawBracketLines);
-
-            // Vẽ lại khi scroll (đôi khi cần thiết trên mobile)
-            document.getElementById('bracket-container').addEventListener('scroll', drawBracketLines);
-
-            // --- SỰ KIỆN QUAN TRỌNG: VẼ LẠI KHI CHUYỂN TAB ---
-            const bracketTabBtn = document.getElementById('bracket-tab');
-            if (bracketTabBtn) {
-                bracketTabBtn.addEventListener('shown.bs.tab', function() {
-                    // Khi tab Bảng đấu hiện ra hoàn toàn -> Gọi hàm vẽ dây
-                    setTimeout(drawBracketLines, 50); // Delay 50ms để giao diện load xong
-                });
-            }
-
-            // Vẽ lại khi xoay màn hình điện thoại
-            // window.addEventListener('orientationchange', () => {
-            //     setTimeout(drawBracketLines, 200); // Delay chút để giao diện xoay xong mới vẽ
-            // });
-        });
-    </script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // 1. Khôi phục Tab đã lưu
-            const activeTabId = localStorage.getItem('activeTournamentTab');
-            if (activeTabId) {
-                const tabTrigger = document.querySelector(`#${activeTabId}`);
-                if (tabTrigger) {
-                    const tab = new bootstrap.Tab(tabTrigger);
-                    tab.show();
-                }
-            }
-
-            // 2. Lưu lại Tab khi bấm chuyển
-            const tabLinks = document.querySelectorAll('button[data-bs-toggle="pill"]');
-            tabLinks.forEach(tab => {
-                tab.addEventListener('shown.bs.tab', function(event) {
-                    localStorage.setItem('activeTournamentTab', event.target.id);
-                });
-            });
-        });
-    </script>
-
-    <script>
-        // Xử lý lưu lịch thi đấu
-        const timeForms = document.querySelectorAll('.ajax-time-form');
-        timeForms.forEach(form => {
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const btn = form.querySelector('button');
-                const originalContent = btn.innerHTML;
-
-                // Hiệu ứng loading
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-                try {
-                    const response = await fetch(form.action, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: new FormData(form)
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok && data.success) {
-                        // Báo thành công
-                        btn.innerHTML = '<i class="bi bi-check-lg"></i>';
-                        btn.classList.remove('btn-outline-success');
-                        btn.classList.add('btn-success');
-
-                        setTimeout(() => {
-                            btn.innerHTML = originalContent;
-                            btn.disabled = false;
-                            btn.classList.remove('btn-success');
-                            btn.classList.add('btn-outline-success');
-                        }, 2000);
-                    } else {
-                        alert('Lỗi: ' + (data.message || 'Không thể lưu'));
-                        btn.innerHTML = originalContent;
-                        btn.disabled = false;
-                    }
-                } catch (error) {
-                    console.error(error);
-                    alert('Lỗi kết nối!');
-                    btn.innerHTML = originalContent;
-                    btn.disabled = false;
-                }
-            });
-        });
-    </script>
-
+    {{-- Chỉnh sửa modal thêm đội --}}
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const playerList = document.getElementById('approved-player-list');
