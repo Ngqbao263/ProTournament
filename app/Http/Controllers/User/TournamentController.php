@@ -11,6 +11,7 @@ use App\Models\TeamMember;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class TournamentController extends Controller
 {
@@ -26,7 +27,7 @@ class TournamentController extends Controller
             'name' => 'required|max:255',
             'category' => 'required|string',
             'game_name' => 'required|string',
-            'start_date' => 'required',
+            'start_date' => 'required|date|after_or_equal:today',
             'description' => 'nullable|string',
             'type' => 'required',
             'mode' => 'required|in:individual,team',
@@ -37,6 +38,7 @@ class TournamentController extends Controller
             'category.required' => 'Vui lòng chọn thể loại thi đấu.',
             'game_name.required' => 'Vui lòng chọn bộ môn thi đấu.',
             'start_date.required' => 'Vui lòng chọn ngày bắt đầu giải.',
+            'start_date.after_or_equal' => 'Ngày bắt đầu không được là ngày trong quá khứ.',
             'type.required' => 'Vui lòng chọn thể thức thi đấu.',
             'max_player.required' => 'Vui lòng nhập số lượng người tham gia tối đa.',
             'thumbnail.max' => 'Ảnh không được lớn hơn 2MB.',
@@ -303,7 +305,20 @@ class TournamentController extends Controller
             return response()->json(['error' => 'Giải đấu đã đủ người chơi!'], 400);
         }
 
-        $request->validate(['name' => 'required|string|max:255']);
+        $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                // Ràng buộc: Tên phải unique trong bảng players, nhưng chỉ với tournament_id hiện tại
+                Rule::unique('players')->where(function ($query) use ($id) {
+                    return $query->where('tournament_id', $id);
+                }),
+            ]
+        ], [
+            'name.required' => 'Vui lòng nhập tên.',
+            'name.unique' => 'Tên này đã tồn tại trong danh sách!',
+        ]);
 
         $player = Player::create([
             'tournament_id' => $id,
@@ -329,7 +344,7 @@ class TournamentController extends Controller
         $request->validate(['name' => 'required|string|max:255']);
         $player->update(['name' => $request->name]);
 
-        // nếu AJAX => trả JSON, ngược lại redirect (dự phòng)
+        // nếu AJAX => trả JSON, ngược lại redirect
         if ($request->ajax()) {
             return response()->json(['success' => true, 'name' => $player->name]);
         }
@@ -453,8 +468,8 @@ class TournamentController extends Controller
         $players = $tournament->players()->where('status', 'approved')->get();
 
 
-        if ($players->count() < 2) {
-            return back()->with('error', 'Cần ít nhất 2 người chơi!');
+        if ($players->count() < 4) {
+            return back()->with('error', 'Cần ít nhất 4 người chơi!');
         }
 
         // === ĐIỀU HƯỚNG DỰA TRÊN THỂ THỨC ===
@@ -469,10 +484,10 @@ class TournamentController extends Controller
 
         $tournament->update(['status' => 'started']);
 
-        return back()->with('success', 'Giải đấu đã bắt đầu! Sơ đồ thi đấu đã được tạo.');
+        return back()->with('success', 'Giải đấu đã bắt đầu!');
     }
 
-    // Hàm riêng để tạo giải Loại trực tiếp
+    // Tạo giải Loại trực tiếp
     private function generateSingleElimination($tournament, $players)
     {
         $playerCount = $players->count();

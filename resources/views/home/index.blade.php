@@ -22,9 +22,9 @@
                 <a href="{{ route('list') }}" class="btn-modern btn-list">
                     <i class="bi bi-collection me-2"></i> Tất cả giải đấu
                 </a>
-                <a href="#" class="btn-modern btn-search">
+                {{-- <a href="#" class="btn-modern btn-search">
                     <i class="bi bi-newspaper me-2"></i> Tin tức
-                </a>
+                </a> --}}
             </div>
 
             <!-- Các số thống kê -->

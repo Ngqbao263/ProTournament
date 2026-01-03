@@ -235,12 +235,15 @@
                                 <form action="{{ route('tournament.addPlayer', $tournament->id) }}" method="POST"
                                     class="ajax-add-player-form {{ $tournament->players->where('status', 'approved')->count() >= $tournament->max_player ? 'd-none' : '' }}">
                                     @csrf
-                                    <div class="input-group">
-                                        <input type="text" name="name"
+                                    <div class="input-group has-validation"> {{-- Thêm has-validation để giữ bo góc đẹp --}}
+                                        <input type="text" name="name" id="add-player-input" {{-- Thêm ID để dễ gọi --}}
                                             class="form-control bg-dark text-white border-secondary"
                                             placeholder="{{ isset($tournament->mode) && $tournament->mode == 'team' ? 'Nhập tên Đội...' : 'Nhập tên người chơi...' }}"
                                             required>
                                         <button class="btn btn-success">Thêm</button>
+
+                                        {{-- Thêm thẻ này để hiện lỗi --}}
+                                        <div id="add-player-error" class="invalid-feedback text-start"></div>
                                     </div>
                                 </form>
 
@@ -261,7 +264,7 @@
 
                                                 {{-- PHẦN 1: TÊN (CHIẾM 60%) --}}
                                                 <div class="p-3 d-flex justify-content-between align-items-center"
-                                                    style="width: 60%;">
+                                                    style="width: {{ isset($tournament->mode) && $tournament->mode == 'team' ? '60%' : '100%' }};">
                                                     <div class="flex-grow-1">
                                                         <span
                                                             class="me-2 fw-bold text-success player-stt">{{ $loop->iteration }}.</span>
@@ -464,16 +467,39 @@
             const addSection = document.getElementById('add-player-section');
             const fullText = document.getElementById('full-player-text');
 
-            // Lấy chế độ đấu từ server để JS biết đường vẽ giao diện
+
+            const deleteModalEl = document.getElementById('deleteConfirmModal');
+            let deleteModal = null;
+            let confirmBtn = null;
+            let pendingDeleteAction = null; // Biến lưu hành động xóa chờ thực hiện
+
+            if (deleteModalEl) {
+                deleteModal = new bootstrap.Modal(deleteModalEl);
+                confirmBtn = document.getElementById('confirmDeleteBtn');
+
+                // Khi bấm nút "Xóa ngay" trong Modal -> Chạy hành động đã lưu
+                confirmBtn.addEventListener('click', () => {
+                    if (pendingDeleteAction) {
+                        pendingDeleteAction(); // Chạy hàm xóa thật
+                        deleteModal.hide(); // Tắt modal
+                        pendingDeleteAction = null; // Reset
+                    }
+                });
+            }
+            // Lấy chế độ đấu từ server
             const isTeamMode =
                 "{{ isset($tournament->mode) && $tournament->mode == 'team' ? 'true' : 'false' }}" === 'true';
             const maxPlayer = {{ $tournament->max_player }};
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
 
-            // 1. CẬP NHẬT GIAO DIỆN (Ẩn hiện form thêm)
+            // ==========================================
+            // 1. CÁC HÀM HỖ TRỢ (UI UPDATE)
+            // ==========================================
+
+            // Cập nhật ẩn hiện form thêm đội khi đủ số lượng
             function updateAddSection() {
                 if (!playerList) return;
-                const count = playerList.querySelectorAll('li.list-group-item').length; // Đếm thẻ li chính xác
+                const count = playerList.querySelectorAll('li.list-group-item').length;
                 if (count >= maxPlayer) {
                     if (addForm) addForm.classList.add('d-none');
                     if (fullText) fullText.classList.remove('d-none');
@@ -483,7 +509,7 @@
                 }
             }
 
-            // 2. CẬP NHẬT SỐ THỨ TỰ
+            // Cập nhật số thứ tự (1, 2, 3...)
             function updatePlayerIndexes() {
                 if (!playerList) return;
                 playerList.querySelectorAll("li.list-group-item").forEach((li, index) => {
@@ -492,13 +518,60 @@
                 });
             }
 
-            // 3. XỬ LÝ SỰ KIỆN CHUNG (EVENT DELEGATION - QUAN TRỌNG)
-            // Thay vì gán onclick cho từng nút, ta gán cho cả danh sách
+            // ==========================================
+            // 2. HÀM XÓA THÀNH VIÊN (GLOBAL)
+            // ==========================================
+
+            // Hàm này cần khai báo window để html onclick gọi được
+            window.deleteMember = async function(icon) {
+                // Dùng confirm mặc định cho nhanh.
+                // Nếu muốn xóa NGAY LẬP TỨC (không hỏi gì cả) thì xóa dòng if bên dưới đi.
+                // if (!confirm('Xóa thành viên này?')) return;
+
+                const url = icon.dataset.url;
+                try {
+                    const res = await fetch(url, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken
+                        }
+                    });
+                    if (res.ok) {
+                        icon.closest('li').remove();
+                    } else {
+                        alert('Lỗi: Không thể xóa thành viên.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            // Hàm xóa thành viên (vừa thêm mới bằng Ajax)
+            window.deleteMemberById = async function(icon, id) {
+                // Dùng confirm mặc định cho nhanh
+                // if (!confirm('Xóa thành viên này?')) return;
+
+                try {
+                    await fetch(`/members/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken
+                        }
+                    });
+                    icon.closest('li').remove();
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            // ==========================================
+            // 3. XỬ LÝ SỰ KIỆN CLICK (DELEGATION)
+            // ==========================================
             if (playerList) {
                 playerList.addEventListener('click', function(e) {
                     const target = e.target;
 
-                    // A. Nút Sửa (Edit)
+                    // Nút Sửa Đội/Người chơi
                     const editBtn = target.closest('.edit-btn');
                     if (editBtn) {
                         const id = editBtn.dataset.id;
@@ -508,65 +581,124 @@
                         return;
                     }
 
-                    // B. Nút Hủy Sửa (Cancel)
+                    // Nút Hủy Sửa
                     const cancelBtn = target.closest('.cancel-edit');
                     if (cancelBtn) {
                         const id = cancelBtn.dataset.id;
                         document.getElementById(`name-${id}`).classList.remove('d-none');
                         document.getElementById(`form-${id}`).classList.add('d-none');
-                        // Hiện lại nút sửa
                         const originalEditBtn = playerList.querySelector(`.edit-btn[data-id="${id}"]`);
                         if (originalEditBtn) originalEditBtn.classList.remove('d-none');
                         return;
                     }
                 });
+            }
 
-                // C. Xử lý Submit Form Sửa/Xóa (Event Delegation cho Form)
-                // Lưu ý: Sự kiện submit không nổi bọt (bubble) giống click, nhưng focusin/out thì có.
-                // Tuy nhiên ta có thể bắt sự kiện submit ở document và kiểm tra target.
-                document.addEventListener('submit', async function(e) {
-                    const form = e.target;
+            // ==========================================
+            // 4. XỬ LÝ SUBMIT CÁC FORM (DELEGATION)
+            // ==========================================
+            document.addEventListener('submit', async function(e) {
+                const form = e.target;
 
-                    // Nếu là Form Sửa Tên
-                    if (form.classList.contains('ajax-edit-form')) {
-                        e.preventDefault();
-                        const id = form.id.replace('form-', '');
-                        const input = form.querySelector('input[name="name"]');
-                        const formData = new FormData(form);
-                        formData.append('_method', 'PUT');
+                // A. XỬ LÝ FORM THÊM THÀNH VIÊN VÀO ĐỘI
+                if (form.classList.contains('ajax-add-member-form')) {
+                    e.preventDefault();
+                    const input = form.querySelector('input[name="member_name"]');
+                    const btn = form.querySelector('button');
+                    const originalHtml = btn.innerHTML;
 
-                        try {
-                            const res = await fetch(form.action, {
-                                method: 'POST',
-                                headers: {
-                                    'X-CSRF-TOKEN': csrfToken
-                                },
-                                body: formData
-                            });
+                    btn.disabled = true;
+                    btn.innerHTML =
+                        '<span class="spinner-border spinner-border-sm" style="width: 0.7rem; height: 0.7rem;"></span>';
 
-                            if (res.ok) {
-                                // Cập nhật giao diện
-                                const nameSpan = document.getElementById(`name-${id}`);
-                                nameSpan.textContent = input.value;
-                                nameSpan.classList.remove('d-none');
-                                form.classList.add('d-none');
+                    try {
+                        const res = await fetch(form.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken
+                            },
+                            body: new FormData(form)
+                        });
+                        const data = await res.json();
 
-                                const editBtn = playerList.querySelector(`.edit-btn[data-id="${id}"]`);
-                                if (editBtn) editBtn.classList.remove('d-none');
-                            } else {
-                                alert('Cập nhật thất bại!');
-                            }
-                        } catch (err) {
-                            console.error(err);
-                            alert('Lỗi kết nối');
+                        if (data.success) {
+                            // Tìm thẻ UL danh sách thành viên nằm ngay trên form này
+                            // Cấu trúc: div > (small + div.scroll > ul) + form
+                            // Ta cần tìm thẻ UL trong div wrapper trước đó
+                            const wrapper = form.previousElementSibling;
+                            const ul = wrapper.querySelector('ul');
+
+                            // Tạo HTML dòng thành viên mới
+                            const li = document.createElement('li');
+                            li.className =
+                                'd-flex justify-content-between align-items-center text-white small mb-1 bg-secondary bg-opacity-10 px-2 py-1 rounded';
+
+                            // Icon xóa gọi hàm deleteMemberById vì đây là item mới
+                            li.innerHTML = `
+                            <span>${input.value}</span>
+                            <i class="bi bi-x text-danger cursor-pointer"
+                               style="cursor: pointer;"
+                               onclick="deleteMemberById(this, ${data.id})"></i>
+                        `;
+
+                            ul.appendChild(li);
+                            input.value = '';
+                        } else {
+                            alert('Lỗi: ' + (data.message || 'Không thể thêm thành viên'));
                         }
+                    } catch (err) {
+                        console.error(err);
+                        alert('Lỗi kết nối');
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                    }
+                    return; // Kết thúc xử lý form này
+                }
+
+                // B. XỬ LÝ FORM SỬA TÊN ĐỘI/NGƯỜI
+                if (form.classList.contains('ajax-edit-form')) {
+                    e.preventDefault();
+                    const id = form.id.replace('form-', '');
+                    const input = form.querySelector('input[name="name"]');
+                    const formData = new FormData(form);
+                    formData.append('_method', 'PUT');
+
+                    try {
+                        const res = await fetch(form.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken
+                            },
+                            body: formData
+                        });
+                        if (res.ok) {
+                            const nameSpan = document.getElementById(`name-${id}`);
+                            nameSpan.textContent = input.value;
+                            nameSpan.classList.remove('d-none');
+                            form.classList.add('d-none');
+                            const editBtn = playerList.querySelector(`.edit-btn[data-id="${id}"]`);
+                            if (editBtn) editBtn.classList.remove('d-none');
+                        } else {
+                            alert('Cập nhật thất bại!');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    }
+                    return;
+                }
+
+                // C. XỬ LÝ FORM XÓA ĐỘI/NGƯỜI CHƠI
+                if (form.classList.contains('ajax-delete-form')) {
+                    e.preventDefault();
+
+                    if (!deleteModal) {
+                        if (!confirm('Xóa mục này?')) return;
+                        // Fallback logic...
+                        return;
                     }
 
-                    // Nếu là Form Xóa Người Chơi/Đội
-                    if (form.classList.contains('ajax-delete-form')) {
-                        e.preventDefault();
-                        if (!confirm('Bạn chắc chắn muốn xóa?')) return;
-
+                    pendingDeleteAction = async () => {
                         const li = form.closest('li.list-group-item');
                         const formData = new FormData(form);
                         formData.append('_method', 'DELETE');
@@ -579,7 +711,6 @@
                                 },
                                 body: formData
                             });
-
                             if (res.ok) {
                                 li.remove();
                                 updateAddSection();
@@ -590,94 +721,114 @@
                         } catch (err) {
                             console.error(err);
                         }
-                    }
-                });
-            }
+                    };
+                    deleteModal.show(); // Hiện modal
+                    return;
+                }
+            });
 
-            // 4. XỬ LÝ THÊM MỚI (AJAX ADD)
+            // ==========================================
+            // 5. XỬ LÝ THÊM ĐỘI / NGƯỜI CHƠI (AJAX ADD MAIN)
+            // ==========================================
             if (addForm) {
+                const inputElement = addForm.querySelector('input[name="name"]');
+                const errorElement = document.getElementById('add-player-error');
+
+                // Khi người dùng gõ lại thì xóa lỗi đi cho đẹp
+                inputElement.addEventListener('input', function() {
+                    this.classList.remove('is-invalid');
+                    if (errorElement) errorElement.textContent = '';
+                });
+
                 addForm.onsubmit = async (e) => {
                     e.preventDefault();
-                    const input = addForm.querySelector('input[name="name"]');
                     const btn = addForm.querySelector('button');
 
-                    btn.disabled = true; // Chống spam click
+                    // Reset lỗi cũ
+                    inputElement.classList.remove('is-invalid');
+                    if (errorElement) errorElement.textContent = '';
+
+                    btn.disabled = true;
 
                     try {
                         const res = await fetch(addForm.action, {
                             method: 'POST',
                             headers: {
-                                'X-CSRF-TOKEN': csrfToken
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json' // Quan trọng: Để Laravel trả về JSON lỗi thay vì redirect
                             },
                             body: new FormData(addForm)
                         });
 
+                        const data = await res.json();
+
                         if (res.ok) {
-                            const data = await res.json();
-
-                            // Tạo HTML cho dòng mới (Tương thích cả Cá nhân và Đội)
+                            // --- THÀNH CÔNG (Code cũ giữ nguyên) ---
                             const li = document.createElement('li');
-                            li.className =
-                                'list-group-item bg-dark text-white border-secondary mb-2 rounded p-2';
+                            li.className = 'list-group-item bg-dark text-white p-0';
+                            const nameColWidth = isTeamMode ? 'width: 60%;' : 'width: 100%;';
 
-                            // Phần HTML dành riêng cho Team (nếu có)
-                            const teamMembersHtml = isTeamMode ? `
-                                <div class="mt-2 ps-4 border-start border-secondary" style="border-left: 2px solid #555;">
-                                    <small class="text-muted d-block mb-1">Thành viên:</small>
-                                    <ul class="list-unstyled mb-2 member-list-${data.id}">
-                                        </ul>
-                                    <form class="d-flex gap-2 ajax-add-member-form" action="/players/${data.id}/members" method="POST">
-                                        <input type="hidden" name="_token" value="${csrfToken}">
-                                        <input type="text" name="member_name" class="form-control form-control-sm bg-dark text-white border-secondary py-0" style="font-size: 0.85rem;" placeholder="Thêm thành viên..." required>
-                                        <button class="btn btn-sm btn-outline-info py-0"><i class="bi bi-plus"></i></button>
-                                    </form>
+                            // HTML Cột thành viên (Nếu là Team)
+                            const teamColHtml = isTeamMode ? `
+                            <div class="p-2 border-start border-secondary" style="width: 40%; border-left: 2px solid #555;">
+                                <small class="text-white d-block mb-1">Thành viên:</small>
+                                <div class="member-scroll-wrapper pe-1" style="max-height: 100px; overflow-y: auto;">
+                                    <ul class="list-unstyled mb-2 member-list-${data.id}"></ul>
                                 </div>
-                            ` : '';
+                                <form class="d-flex gap-2 ajax-add-member-form mt-1" action="/players/${data.id}/members" method="POST">
+                                    <input type="hidden" name="_token" value="${csrfToken}">
+                                    <input type="text" name="member_name"
+                                        class="form-control form-control-sm bg-dark text-white border-secondary py-0"
+                                        style="font-size: 0.85rem;" placeholder="Thêm thành viên..." required>
+                                    <button class="btn btn-sm btn-outline-info py-0"><i class="bi bi-plus"></i></button>
+                                </form>
+                            </div>
+                        ` : '';
 
-                            // Route update/delete (Giả định URL chuẩn, nếu khác bạn cần sửa lại)
-                            // Lưu ý: data.id trả về từ controller
-                            const updateUrl = `/player/${data.id}`;
-                            const deleteUrl = `/player/${data.id}`;
-
+                            // HTML Chính
                             li.innerHTML = `
-                                <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex w-100 align-items-center">
+                                <div class="p-3 d-flex justify-content-between align-items-center" style="${nameColWidth}">
                                     <div class="flex-grow-1">
                                         <span class="me-2 fw-bold text-success player-stt"></span>
                                         <span id="name-${data.id}" class="fw-bold fs-5">${data.name}</span>
 
-                                        <form id="form-${data.id}" class="d-none ajax-edit-form d-inline" action="${updateUrl}" method="POST">
+                                        <form id="form-${data.id}" class="d-none ajax-edit-form d-inline ms-2" action="/player/${data.id}" method="POST">
                                             <input type="hidden" name="_token" value="${csrfToken}">
                                             <input type="text" name="name" value="${data.name}" class="form-control form-control-sm d-inline-block w-auto">
                                             <button type="submit" class="btn btn-sm btn-success">Lưu</button>
                                             <button type="button" class="btn btn-sm btn-secondary cancel-edit" data-id="${data.id}">Hủy</button>
                                         </form>
                                     </div>
-
                                     <div class="ms-2 d-flex align-items-center gap-2">
-                                        <button type="button" class="btn btn-sm btn-outline-warning edit-btn" data-id="${data.id}">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <form class="d-inline ajax-delete-form" action="${deleteUrl}" method="POST">
+                                        <button type="button" class="btn btn-sm btn-outline-warning edit-btn" data-id="${data.id}"><i class="bi bi-pencil"></i></button>
+                                        <form class="d-inline ajax-delete-form" action="/player/${data.id}" method="POST">
                                             <input type="hidden" name="_token" value="${csrfToken}">
                                             <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                                         </form>
                                     </div>
                                 </div>
-                                ${teamMembersHtml}
-                            `;
+                                ${teamColHtml}
+                            </div>
+                        `;
 
                             playerList.appendChild(li);
-                            input.value = '';
+                            inputElement.value = ''; // Xóa input
                             updateAddSection();
                             updatePlayerIndexes();
-
-                            // Quan trọng: Gán lại sự kiện cho form thêm thành viên mới vừa sinh ra
-                            if (isTeamMode) {
-                                attachMemberFormEvent(li.querySelector('.ajax-add-member-form'));
-                            }
-
                         } else {
-                            alert('Thêm thất bại!');
+                            // --- XỬ LÝ LỖI (Status 422 là lỗi Validate) ---
+                            if (res.status === 422) {
+                                inputElement.classList.add('is-invalid'); // Hiện viền đỏ
+                                // Lấy message lỗi từ Laravel trả về
+                                if (data.errors && data.errors.name) {
+                                    errorElement.textContent = data.errors.name[0];
+                                } else {
+                                    errorElement.textContent = data.message;
+                                }
+                            } else {
+                                alert(data.error || 'Thêm thất bại!');
+                            }
                         }
                     } catch (err) {
                         console.error(err);
@@ -686,18 +837,6 @@
                         btn.disabled = false;
                     }
                 };
-            }
-
-            // Hàm gán sự kiện cho form thêm thành viên (Tách riêng để tái sử dụng)
-            function attachMemberFormEvent(form) {
-                if (!form) return;
-                form.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    // ... (Logic thêm thành viên giống script cũ của bạn, copy vào đây hoặc gọi hàm chung) ...
-                    // Để code gọn, phần này sẽ được xử lý bởi block script "XỬ LÝ THÊM THÀNH VIÊN" ở dưới cùng file
-                    // Tuy nhiên, vì form được sinh ra động, ta cần kích hoạt thủ công sự kiện submit của nó
-                    // Cách tốt nhất: dùng Event Delegation cho cả form thêm thành viên
-                });
             }
 
             // Chạy lần đầu
@@ -780,298 +919,6 @@
                     }
                 });
             }
-        });
-    </script>
-
-
-
-    {{-- Chỉnh sửa modal thêm đội --}}
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const playerList = document.getElementById('approved-player-list');
-            const addForm = document.querySelector('.ajax-add-player-form');
-            const addSection = document.getElementById('add-player-section');
-            const fullText = document.getElementById('full-player-text');
-
-            // Lấy chế độ đấu
-            const isTeamMode =
-                "{{ isset($tournament->mode) && $tournament->mode == 'team' ? 'true' : 'false' }}" === 'true';
-            const maxPlayer = {{ $tournament->max_player }};
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
-
-            // 1. CẬP NHẬT GIAO DIỆN (Ẩn hiện form thêm)
-            function updateAddSection() {
-                if (!playerList) return;
-                const count = playerList.querySelectorAll('li.list-group-item').length;
-                if (count >= maxPlayer) {
-                    if (addForm) addForm.classList.add('d-none');
-                    if (fullText) fullText.classList.remove('d-none');
-                } else {
-                    if (addForm) addForm.classList.remove('d-none');
-                    if (fullText) fullText.classList.add('d-none');
-                }
-            }
-
-            // 2. CẬP NHẬT SỐ THỨ TỰ
-            function updatePlayerIndexes() {
-                if (!playerList) return;
-                playerList.querySelectorAll("li.list-group-item").forEach((li, index) => {
-                    const sttSpan = li.querySelector(".player-stt");
-                    if (sttSpan) sttSpan.textContent = (index + 1) + ".";
-                });
-            }
-
-            // 3. XỬ LÝ SỰ KIỆN CLICK (Sửa/Hủy/Xóa)
-            if (playerList) {
-                playerList.addEventListener('click', function(e) {
-                    const target = e.target;
-
-                    // Nút Sửa
-                    const editBtn = target.closest('.edit-btn');
-                    if (editBtn) {
-                        const id = editBtn.dataset.id;
-                        document.getElementById(`name-${id}`).classList.add('d-none');
-                        document.getElementById(`form-${id}`).classList.remove('d-none');
-                        editBtn.classList.add('d-none');
-                    }
-
-                    // Nút Hủy
-                    const cancelBtn = target.closest('.cancel-edit');
-                    if (cancelBtn) {
-                        const id = cancelBtn.dataset.id;
-                        document.getElementById(`name-${id}`).classList.remove('d-none');
-                        document.getElementById(`form-${id}`).classList.add('d-none');
-                        const originalBtn = playerList.querySelector(`.edit-btn[data-id="${id}"]`);
-                        if (originalBtn) originalBtn.classList.remove('d-none');
-                    }
-                });
-            }
-
-            // 4. XỬ LÝ SUBMIT FORM (Sửa tên / Xóa người / Thêm thành viên)
-            document.addEventListener('submit', async function(e) {
-                const form = e.target;
-
-                // A. Form thêm thành viên (Quan trọng: Xử lý giao diện giống hệt Server)
-                if (form.classList.contains('ajax-add-member-form')) {
-                    e.preventDefault();
-                    const input = form.querySelector('input[name="member_name"]');
-                    const btn = form.querySelector('button');
-                    const originalHtml = btn.innerHTML;
-
-                    btn.disabled = true;
-                    btn.innerHTML =
-                        '<span class="spinner-border spinner-border-sm" style="width: 0.7rem; height: 0.7rem;"></span>';
-
-                    try {
-                        const res = await fetch(form.action, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': csrfToken
-                            },
-                            body: new FormData(form)
-                        });
-                        const data = await res.json();
-
-                        if (data.success) {
-                            const ul = form.previousElementSibling; // Tìm thẻ UL ngay trên form
-
-                            // Tạo dòng thành viên mới (Copy y hệt Blade)
-                            const li = document.createElement('li');
-                            li.className =
-                                'd-flex justify-content-between align-items-center text-white small mb-1 bg-secondary bg-opacity-10 px-2 py-1 rounded';
-
-                            // Nút xóa thành viên
-                            // Lưu ý: data.id là ID thành viên server trả về
-                            li.innerHTML = `
-                            <span>${input.value}</span>
-                            <i class="bi bi-x text-danger cursor-pointer"
-                               style="cursor: pointer;"
-                               onclick="deleteMemberById(this, ${data.id})"></i>
-                        `;
-
-                            ul.appendChild(li);
-                            input.value = '';
-                        } else {
-                            alert('Lỗi: ' + data.message);
-                        }
-                    } catch (err) {
-                        console.error(err);
-                    } finally {
-                        btn.disabled = false;
-                        btn.innerHTML = originalHtml;
-                    }
-                }
-
-                // B. Form Sửa Tên Đội/Người
-                if (form.classList.contains('ajax-edit-form')) {
-                    e.preventDefault();
-                    const id = form.id.replace('form-', '');
-                    const input = form.querySelector('input[name="name"]');
-                    const formData = new FormData(form);
-                    formData.append('_method', 'PUT');
-
-                    try {
-                        const res = await fetch(form.action, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': csrfToken
-                            },
-                            body: formData
-                        });
-                        if (res.ok) {
-                            document.getElementById(`name-${id}`).textContent = input.value;
-                            document.getElementById(`name-${id}`).classList.remove('d-none');
-                            form.classList.add('d-none');
-                            const editBtn = playerList.querySelector(`.edit-btn[data-id="${id}"]`);
-                            if (editBtn) editBtn.classList.remove('d-none');
-                        }
-                    } catch (err) {
-                        alert('Lỗi kết nối');
-                    }
-                }
-
-                // C. Form Xóa Đội/Người
-                if (form.classList.contains('ajax-delete-form')) {
-                    e.preventDefault();
-                    if (!confirm('Xóa đội/người chơi này?')) return;
-                    const li = form.closest('li.list-group-item');
-                    const formData = new FormData(form);
-                    formData.append('_method', 'DELETE');
-                    try {
-                        const res = await fetch(form.action, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': csrfToken
-                            },
-                            body: formData
-                        });
-                        if (res.ok) {
-                            li.remove();
-                            updateAddSection();
-                            updatePlayerIndexes();
-                        }
-                    } catch (err) {
-                        alert('Lỗi xóa');
-                    }
-                }
-            });
-
-            // 5. XỬ LÝ THÊM ĐỘI / NGƯỜI CHƠI (AJAX ADD)
-            if (addForm) {
-                addForm.onsubmit = async (e) => {
-                    e.preventDefault();
-                    const input = addForm.querySelector('input[name="name"]');
-                    const btn = addForm.querySelector('button');
-                    btn.disabled = true;
-
-                    try {
-                        const res = await fetch(addForm.action, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': csrfToken
-                            },
-                            body: new FormData(addForm)
-                        });
-
-                        if (res.ok) {
-                            const data = await res.json();
-
-                            // Tạo thẻ li chính
-                            const li = document.createElement('li');
-                            li.className =
-                                'list-group-item bg-dark text-white border-secondary mb-2 rounded p-2';
-
-                            // HTML cho phần thành viên (Đồng bộ class form-control-sm và py-0 để không bị to)
-                            const teamMembersHtml = isTeamMode ? `
-                            <div class="mt-2 ps-4 border-start border-secondary" style="border-left: 2px solid #555;">
-                                <small class="text-muted d-block mb-1">Thành viên:</small>
-                                <ul class="list-unstyled mb-2 member-list-${data.id}"></ul>
-                                <form class="d-flex gap-2 ajax-add-member-form" action="/players/${data.id}/members" method="POST">
-                                    <input type="hidden" name="_token" value="${csrfToken}">
-                                    <input type="text" name="member_name"
-                                           class="form-control form-control-sm bg-dark text-white border-secondary py-0"
-                                           style="font-size: 0.85rem;" placeholder="Thêm thành viên..." required>
-                                    <button class="btn btn-sm btn-outline-info py-0"><i class="bi bi-plus"></i></button>
-                                </form>
-                            </div>
-                        ` : '';
-
-                            // HTML nội dung thẻ li
-                            li.innerHTML = `
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="flex-grow-1">
-                                    <span class="me-2 fw-bold text-success player-stt"></span>
-                                    <span id="name-${data.id}" class="fw-bold fs-5">${data.name}</span>
-
-                                    <form id="form-${data.id}" class="d-none ajax-edit-form d-inline" action="/player/${data.id}" method="POST">
-                                        <input type="hidden" name="_token" value="${csrfToken}">
-                                        <input type="text" name="name" value="${data.name}" class="form-control form-control-sm d-inline-block w-auto">
-                                        <button type="submit" class="btn btn-sm btn-success">Lưu</button>
-                                        <button type="button" class="btn btn-sm btn-secondary cancel-edit" data-id="${data.id}">Hủy</button>
-                                    </form>
-                                </div>
-                                <div class="ms-2 d-flex align-items-center gap-2">
-                                    <button type="button" class="btn btn-sm btn-outline-warning edit-btn" data-id="${data.id}">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <form class="d-inline ajax-delete-form" action="/player/${data.id}" method="POST">
-                                        <input type="hidden" name="_token" value="${csrfToken}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                                    </form>
-                                </div>
-                            </div>
-                            ${teamMembersHtml}
-                        `;
-
-                            playerList.appendChild(li);
-                            input.value = '';
-                            updateAddSection();
-                            updatePlayerIndexes();
-                        }
-                    } catch (err) {
-                        console.error(err);
-                    } finally {
-                        btn.disabled = false;
-                    }
-                };
-            }
-
-            // Hàm xóa thành viên (Có sẵn)
-            window.deleteMember = async function(icon) {
-                if (!confirm('Xóa thành viên này?')) return;
-                const url = icon.dataset.url;
-                try {
-                    const res = await fetch(url, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': csrfToken
-                        }
-                    });
-                    if (res.ok) icon.parentElement.remove();
-                } catch (err) {
-                    alert('Lỗi khi xóa');
-                }
-            }
-
-            // Hàm xóa thành viên (Vừa thêm mới)
-            window.deleteMemberById = async function(icon, id) {
-                if (!confirm('Xóa thành viên này?')) return;
-                try {
-                    // Dùng id server trả về để gọi route xóa
-                    await fetch(`/members/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': csrfToken
-                        }
-                    });
-                    icon.parentElement.remove();
-                } catch (err) {
-                    console.error(err);
-                }
-            }
-
-            // Chạy lần đầu
-            updateAddSection();
         });
     </script>
 

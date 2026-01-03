@@ -27,7 +27,7 @@
                                 </li>
                             </ul>
                         </li>
-                        <li class="nav-item"><a href="#" class="nav-link text-white">Blog</a></li>
+                        {{-- <li class="nav-item"><a href="#" class="nav-link text-white">Blog</a></li> --}}
                         {{-- <li class="nav-item"><a href="#" class="nav-link text-white">Mua sắm</a></li> --}}
                     </ul>
                 </nav>
@@ -46,7 +46,7 @@
                             {{ Auth::user()->name }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#">Tài khoản</a></li>
+                            {{-- <li><a class="dropdown-item" href="#">Tài khoản</a></li> --}}
 
                             @if (Auth::user()->role === 'admin')
                                 <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}">Quản trị</a></li>

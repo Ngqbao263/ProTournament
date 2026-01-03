@@ -60,7 +60,7 @@
 
     <div class="container py-5">
         <h2 class="text-white fw-bold mb-4 text-uppercase border-bottom border-secondary pb-3">
-            <i class="bi bi-person-workspace me-2"></i>Giải đấu của tôi
+            Giải đấu của tôi
         </h2>
 
         <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">

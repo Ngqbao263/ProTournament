@@ -8,7 +8,7 @@ class Matches extends Model
 {
     protected $fillable = [
         'tournament_id', 'player1_id', 'player2_id',
-        'score1', 'score2', 'winner_id', 'round_number', 'match_index', 'match_time'
+        'score1', 'score2', 'winner_id', 'round_number', 'match_index', 'match_time', 'group'
     ];
 
     public function player1() { return $this->belongsTo(Player::class, 'player1_id'); }

@@ -74,6 +74,10 @@
                             <option value="sport" {{ old('category') == 'sport' ? 'selected' : '' }}>Thể thao</option>
                             <option value="e-sport" {{ old('category') == 'e-sport' ? 'selected' : '' }}>E-Sport</option>
                         </select>
+
+                        @error('category')
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="col-md-6 mb-3">
@@ -92,6 +96,10 @@
                         required>
                         <option value="">-- Chọn bộ môn --</option>
                     </select>
+
+                    @error('game_name')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 {{-- Ngày bắt đầu giải --}}
@@ -99,6 +107,10 @@
                     <label for="start_date" class="form-label">Ngày bắt đầu</label>
                     <input type="date" name="start_date" id="start_date"
                         class="form-control bg-white text-black border-secondary" value="{{ old('start_date') }}">
+
+                    @error('start_date')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 {{-- Mô tả --}}
