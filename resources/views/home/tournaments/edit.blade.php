@@ -163,7 +163,8 @@
                         class="btn btn-secondary w-50 rounded-pill fw-semibold py-2">
                         Hủy bỏ
                     </a>
-                    <button type="submit" class="btn btn-warning w-50 rounded-pill fw-semibold py-2">
+                    <button type="submit"
+                        class="btn-primary btn btn-warning w-50 rounded-pill fw-semibold py-2 text-white">
                         Lưu thay đổi
                     </button>
                 </div>

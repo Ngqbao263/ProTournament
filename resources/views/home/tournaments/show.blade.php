@@ -450,7 +450,7 @@
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body text-center mt-4" id="joinResultMessage"></div>
+                    <div class="modal-body text-center mt-4 fw-bold fs-5" id="joinResultMessage"></div>
                     <div class="modal-footer border-0 justify-content-center">
                         <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
                     </div>
@@ -1169,17 +1169,11 @@
                             let colorClass = '';
 
                             if (data.status === 'success') {
-                                icon =
-                                    '<i class="bi bi-check-circle-fill text-success me-2" style="font-size: 2rem;"></i>';
                                 colorClass = 'text-white';
                             } else if (data.status === 'warning') {
-                                icon =
-                                    '<i class="bi bi-exclamation-triangle-fill text-warning me-2" style="font-size: 2rem;"></i>';
-                                colorClass = 'text-warning';
+                                colorClass = 'text-white';
                             } else {
-                                icon =
-                                    '<i class="bi bi-x-circle-fill text-danger me-2" style="font-size: 2rem;"></i>';
-                                colorClass = 'text-danger';
+                                colorClass = 'text-white';
                             }
 
                             msgContent.innerHTML = `

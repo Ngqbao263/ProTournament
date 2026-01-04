@@ -674,6 +674,18 @@ h4.text-info {
     box-shadow: 0 0 14px rgba(27, 124, 0, 0.7);
 }
 
+.btn-secondary {
+    background: linear-gradient(to bottom, #474747, #474747);
+    border: none;
+    box-shadow: 0 0 10px rgba(27, 124, 0, 0.5);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(to bottom, #656565, #656565);
+    transform: translateY(-2px);
+    box-shadow: 0 0 14px rgba(47, 47, 47, 0.7);
+}
+
 .btn-outline-light:hover {
     background-color: #00ff7f;
     color: #000 !important;

@@ -180,15 +180,9 @@
                                         </div>
                                         <div class="card-body">
                                             <h5 class="card-title fw-bold text-truncate">{{ $tournament->name }}</h5>
-                                            <p class="card-text text-muted small mb-2">
-                                                <i class="bi bi-person-circle me-1"></i> Tạo bởi:
-                                                {{ $tournament->creator ? $tournament->creator->name : 'Admin' }}
-                                            </p>
                                             <div class="d-flex justify-content-between align-items-center mt-3">
                                                 <small class="text-white-50"><i class="bi bi-people me-1"></i>
                                                     {{ $tournament->players->count() }}/{{ $tournament->max_player }}</small>
-                                                <small class="text-white-50"><i class="bi bi-clock me-1"></i>
-                                                    {{ $tournament->created_at->diffForHumans() }}</small>
                                             </div>
                                         </div>
                                     </div>
