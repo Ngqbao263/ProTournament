@@ -69,6 +69,69 @@ class TournamentController extends Controller
         return redirect()->route('tournament.show', $tournament->id)->with('success', 'Tạo giải đấu thành công!');
     }
 
+    public function edit($id)
+    {
+        $tournament = Tournament::findOrFail($id);
+
+        // Kiểm tra quyền: Chỉ người tạo hoặc status là 'open' mới được sửa (tùy logic của bạn)
+        if ($tournament->creator_id != Auth::id()) {
+            return redirect()->route('home')->with('error', 'Bạn không có quyền chỉnh sửa giải đấu này.');
+        }
+
+        // Nếu giải đang diễn ra hoặc kết thúc, có thể chặn sửa một số thông tin quan trọng
+        // if ($tournament->status != 'open') { ... }
+
+        return view('home.tournaments.edit', compact('tournament'));
+    }
+
+    // 2. Hàm xử lý cập nhật
+    public function update(Request $request, $id)
+    {
+        $tournament = Tournament::findOrFail($id);
+
+        if ($tournament->creator_id != Auth::id()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'name' => 'required|max:255',
+            'category' => 'required|string',
+            'game_name' => 'required|string',
+            'start_date' => 'required|date', // Bỏ after_or_equal:today để tránh lỗi nếu không sửa ngày
+            'description' => 'nullable|string',
+            'type' => 'required',
+            'mode' => 'required|in:individual,team',
+            'max_player' => 'required|integer|min:2',
+            'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
+        ]);
+
+        $data = [
+            'name' => $request->name,
+            'category' => $request->category,
+            'game_name' => $request->game_name,
+            'start_date' => $request->start_date,
+            'description' => $request->description,
+            'type' => $request->type,
+            'mode' => $request->mode,
+            'max_player' => $request->max_player,
+        ];
+
+        // Xử lý ảnh thumbnail
+        if ($request->hasFile('thumbnail')) {
+            // Xóa ảnh cũ nếu không phải ảnh mặc định (tùy logic)
+            // if ($tournament->thumbnail && $tournament->thumbnail != 'home/img/default.png') {
+            //     Storage::disk('public')->delete($tournament->thumbnail);
+            // }
+
+            $path = $request->file('thumbnail')->store('thumbnail_tournament', 'public');
+            $data['thumbnail'] = $path;
+        }
+
+        $tournament->update($data);
+
+        return redirect()->route('tournament.show', $tournament->id)->with('success', 'Cập nhật giải đấu thành công!');
+    }
+
     //Phần chi tiết giải đấu
     public function show($id)
     {
@@ -169,7 +232,11 @@ class TournamentController extends Controller
     {
         $player = Player::findOrFail($id);
         $player->update(['status' => 'approved']);
-        return back()->with('success', 'Đã duyệt người chơi');
+        return response()->json([
+            'success' => true,
+            'player' => $player,
+            'members' => $player->members
+        ]);
     }
 
     // Trang giải đấu của tôi

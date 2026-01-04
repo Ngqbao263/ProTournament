@@ -73,12 +73,6 @@
                     </div>
 
                     <div class="modal-body text-center py-4">
-                        {{-- Icon to ở giữa --}}
-                        {{-- <div class="mb-3">
-                            <i class="bi {{ $iconClass }} {{ $textColor }}" style="font-size: 3.5rem;"></i>
-                        </div> --}}
-
-                        {{-- Nội dung thông báo --}}
                         <p class="fs-5 mb-0">{{ $message }}</p>
                     </div>
 

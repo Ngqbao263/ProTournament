@@ -117,16 +117,15 @@
                                             @endif
                                         </div>
                                         <div class="card-body">
-                                            <h5 class="card-title fw-bold text-truncate">{{ $tournament->name }}</h5>
-                                            <p class="card-text text-muted small mb-2">
-                                                <i class="bi bi-gamepad me-1"></i> {{ $tournament->game_name }}
-                                            </p>
-                                            <div class="d-flex justify-content-between align-items-center mt-3">
-                                                <small class="text-white-50"><i class="bi bi-people me-1"></i>
-                                                    {{ $tournament->players->count() ?? 0 }}/{{ $tournament->max_player }}</small>
-                                                <small class="text-white-50"><i class="bi bi-calendar3 me-1"></i>
-                                                    {{ \Carbon\Carbon::parse($tournament->start_date)->format('d/m/Y') }}</small>
-                                            </div>
+                                            <h5 class="card-title fw-bold text-truncate text-white">{{ $tournament->name }}
+                                            </h5>
+
+                                            @if ($tournament->status == 'open')
+                                                <a href="{{ route('tournaments.edit', $tournament->id) }}"
+                                                    class="btn btn-sm btn-warning">
+                                                    Chỉnh sửa
+                                                </a>
+                                            @endif
                                         </div>
                                     </div>
                                 </a>

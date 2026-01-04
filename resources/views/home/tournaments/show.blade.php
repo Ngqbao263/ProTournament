@@ -31,7 +31,7 @@
                 <div class="mt-3">
                     @if (Str::startsWith($tournament->thumbnail, 'thumbnail_tournament/'))
                         <img src="{{ asset('storage/' . $tournament->thumbnail) }}" alt="Thumbnail"
-                            class="img-fluid rounded shadow" style="max-height: 300px; object-fit: cover;">
+                            class="img-fluid rounded shadow" style="height: 300px; width: 50%; object-fit: cover;">
                     @else
                         <img src="{{ asset($tournament->thumbnail) }}" alt="Thumbnail" class="img-fluid rounded shadow"
                             style="max-height: 300px; object-fit: cover;">
@@ -184,37 +184,39 @@
                                     <p class="fst-italic">Không có ai đang chờ duyệt.</p>
                                 @else
                                     <div class="player-list-scroll mb-3">
-                                        <ul class="list-group list-group-flush gap-2"> {{-- Thêm gap-2 để các dòng cách nhau ra --}}
+                                        <ul class="list-group list-group-flush gap-2" id="pending-player-list">
+                                            {{-- Thêm gap-2 để các dòng cách nhau ra --}}
                                             @foreach ($tournament->players->where('status', 'pending') as $player)
-                                                <li
-                                                    class="list-group-item bg-dark text-white border border-secondary rounded d-flex justify-content-between align-items-center p-3 shadow-sm">
+                                                <li class="list-group-item bg-dark text-white border border-secondary rounded d-flex justify-content-between align-items-center p-3 shadow-sm"
+                                                    id="pending-item-{{ $player->id }}">
 
                                                     {{-- Tên người chơi --}}
                                                     <span class="fs-5 text-truncate pe-2" style="max-width: 50%;">
                                                         {{ $player->name }}
                                                     </span>
 
-                                                    {{-- Khu vực nút bấm (Căn chỉnh thẳng hàng) --}}
+                                                    {{-- Khu vực nút bấm --}}
                                                     <div class="d-flex align-items-center gap-2">
-                                                        {{-- 1. Nút DUYỆT (Xanh) --}}
+                                                        {{-- 1. Nút DUYỆT (Thêm class pending-action-form và data-type="approve") --}}
                                                         <form action="{{ route('player.approve', $player->id) }}"
-                                                            method="POST" class="m-0">
+                                                            method="POST" class="m-0 pending-action-form"
+                                                            data-type="approve">
                                                             @csrf
                                                             <button type="submit" class="btn btn-sm btn-success px-3"
                                                                 style="min-width: 90px;">
-                                                                <i class="bi bi-check-circle-fill me-1"></i> Duyệt
+                                                                Duyệt
                                                             </button>
                                                         </form>
 
-                                                        {{-- 2. Nút TỪ CHỐI (Đỏ) --}}
+                                                        {{-- 2. Nút TỪ CHỐI (Thêm class pending-action-form và data-type="reject") --}}
                                                         <form action="{{ route('player.delete', $player->id) }}"
-                                                            method="POST" class="m-0"
-                                                            onsubmit="return confirm('Bạn có chắc muốn từ chối đội {{ $player->name }}?');">
+                                                            method="POST" class="m-0 pending-action-form"
+                                                            data-type="reject">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button type="submit" class="btn btn-sm btn-danger px-3"
                                                                 style="min-width: 100px;">
-                                                                <i class="bi bi-x-circle-fill me-1"></i> Từ chối
+                                                                Từ chối
                                                             </button>
                                                         </form>
                                                     </div>
@@ -324,7 +326,7 @@
                                                                     <li
                                                                         class="d-flex justify-content-between align-items-center text-white small mb-1 bg-secondary bg-opacity-10 px-2 py-1 rounded">
                                                                         <span> {{ $member->member_name }}</span>
-                                                                        @if ($tournament->creator_id == auth()->id())
+                                                                        @if ($tournament->creator_id == auth()->id() && $tournament->status == 'open')
                                                                             <i class="bi bi-x text-danger cursor-pointer delete-member-btn"
                                                                                 style="cursor: pointer;"
                                                                                 data-url="{{ route('member.delete', $member->id) }}"
@@ -336,7 +338,7 @@
                                                         </div>
 
                                                         {{-- Form thêm thành viên (Giữ nguyên code cũ, nằm dưới phần scroll) --}}
-                                                        @if ($tournament->creator_id == auth()->id())
+                                                        @if ($tournament->creator_id == auth()->id() && $tournament->status == 'open')
                                                             <form class="d-flex gap-2 ajax-add-member-form mt-1"
                                                                 action="{{ route('member.add', $player->id) }}"
                                                                 method="POST">
@@ -448,9 +450,9 @@
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body" id="joinResultMessage"></div>
-                    <div class="modal-footer border-0">
-                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                    <div class="modal-body text-center mt-4" id="joinResultMessage"></div>
+                    <div class="modal-footer border-0 justify-content-center">
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
                     </div>
                 </div>
             </div>
@@ -837,6 +839,150 @@
                         btn.disabled = false;
                     }
                 };
+            }
+
+            // ==========================================
+            // 6. XỬ LÝ DUYỆT / TỪ CHỐI (KHÔNG RELOAD, KHÔNG POPUP)
+            // ==========================================
+            document.addEventListener('submit', async function(e) {
+                // Chỉ bắt sự kiện của form trong danh sách chờ duyệt
+                if (e.target.classList.contains('pending-action-form')) {
+                    e.preventDefault();
+
+                    const form = e.target;
+                    const btn = form.querySelector('button');
+                    const originalContent = btn.innerHTML;
+                    const type = form.dataset.type; // 'approve' hoặc 'reject'
+                    const listItem = form.closest('li'); // Dòng chứa người chơi
+
+                    // Hiệu ứng loading nhỏ trên nút
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+                    try {
+                        const res = await fetch(form.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: new FormData(form)
+                        });
+
+                        const data = await res.json();
+
+                        if (data.success) {
+                            // 1. Xóa khỏi danh sách chờ duyệt
+                            listItem.remove();
+
+                            // 2. Nếu là DUYỆT -> Thêm xuống danh sách chính thức
+                            if (type === 'approve' && data.player) {
+                                addApprovedPlayerToUI(data.player, data.members);
+                                updatePlayerIndexes(); // Cập nhật lại số thứ tự
+                                updateAddSection(); // Cập nhật lại trạng thái nút thêm
+                            }
+
+                            // Kiểm tra nếu danh sách chờ trống thì hiện text "Không có ai..."
+                            const pendingList = document.getElementById('pending-player-list');
+                            if (pendingList && pendingList.children.length === 0) {
+                                pendingList.innerHTML =
+                                    '<span class="fst-italic">Không có ai đang chờ duyệt.</span>';
+                            }
+
+                        } else {
+                            // Chỉ hiện alert nếu lỗi server trả về (ít khi xảy ra)
+                            console.error('Action failed');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    } finally {
+                        // Nếu item chưa bị xóa (trường hợp lỗi), trả lại nút bấm
+                        if (listItem && listItem.parentNode) {
+                            btn.disabled = false;
+                            btn.innerHTML = originalContent;
+                        }
+                    }
+                }
+            });
+
+            // Hàm phụ: Vẽ HTML người chơi đã duyệt để thêm xuống dưới (Copy style từ code cũ)
+            function addApprovedPlayerToUI(player, members) {
+                const list = document.getElementById('approved-player-list');
+                const li = document.createElement('li');
+                li.className = 'list-group-item bg-dark text-white p-0';
+
+                const nameColWidth = isTeamMode ? 'width: 60%;' : 'width: 100%;';
+
+                // Tạo HTML danh sách thành viên (nếu là team)
+                let membersHtml = '';
+                if (isTeamMode) {
+                    let membersListHtml = '';
+                    if (members && members.length > 0) {
+                        members.forEach(m => {
+                            membersListHtml += `
+                        <li class="d-flex justify-content-between align-items-center text-white small mb-1 bg-secondary bg-opacity-10 px-2 py-1 rounded">
+                            <span>${m.member_name}</span>
+                            <i class="bi bi-x text-danger cursor-pointer delete-member-btn"
+                               style="cursor: pointer;"
+                               data-url="/members/${m.id}"
+                               onclick="deleteMember(this)"></i>
+                        </li>
+                    `;
+                        });
+                    }
+
+                    membersHtml = `
+                <div class="p-2 border-start border-secondary" style="width: 40%; border-left: 2px solid #555;">
+                    <small class="text-white d-block mb-1">Thành viên:</small>
+                    <div class="member-scroll-wrapper pe-1" style="max-height: 100px; overflow-y: auto;">
+                        <ul class="list-unstyled mb-2 member-list-${player.id}">
+                            ${membersListHtml}
+                        </ul>
+                    </div>
+                    <form class="d-flex gap-2 ajax-add-member-form mt-1" action="/players/${player.id}/members" method="POST">
+                        <input type="hidden" name="_token" value="${csrfToken}">
+                        <input type="text" name="member_name"
+                            class="form-control form-control-sm bg-dark text-white border-secondary py-0"
+                            style="font-size: 0.85rem;" placeholder="Thêm thành viên..." required>
+                        <button class="btn btn-sm btn-outline-info py-0"><i class="bi bi-plus"></i></button>
+                    </form>
+                </div>
+            `;
+                }
+
+                // HTML chính
+                li.innerHTML = `
+            <div class="d-flex w-100 align-items-center">
+                <div class="p-3 d-flex justify-content-between align-items-center" style="${nameColWidth}">
+                    <div class="flex-grow-1">
+                        <span class="me-2 fw-bold text-success player-stt"></span>
+                        <span id="name-${player.id}" class="fw-bold fs-5">${player.name}</span>
+
+                        <form id="form-${player.id}" class="d-none ajax-edit-form d-inline ms-2" action="/player/${player.id}" method="POST">
+                            <input type="hidden" name="_token" value="${csrfToken}">
+                            <input type="text" name="name" value="${player.name}" class="form-control form-control-sm d-inline-block w-auto">
+                            <button type="submit" class="btn btn-sm btn-success">Lưu</button>
+                            <button type="button" class="btn btn-sm btn-secondary cancel-edit" data-id="${player.id}">Hủy</button>
+                        </form>
+                    </div>
+                    <div class="ms-2 d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-warning edit-btn" data-id="${player.id}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <form class="d-inline ajax-delete-form" action="/player/${player.id}" method="POST">
+                            <input type="hidden" name="_token" value="${csrfToken}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                ${membersHtml}
+            </div>
+        `;
+
+                list.appendChild(li);
             }
 
             // Chạy lần đầu

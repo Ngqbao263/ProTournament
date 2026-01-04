@@ -34,6 +34,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tournaments/create', [TournamentController::class, 'create'])->name('tournaments.create');
     Route::post('/tournaments', [TournamentController::class, 'store'])->name('tournaments.store');
+    // Hiển thị form sửa
+    Route::get('/tournaments/{id}/edit', [TournamentController::class, 'edit'])->name('tournaments.edit');
+    Route::put('/tournaments/{id}', [TournamentController::class, 'update'])->name('tournaments.update');
     Route::post('/players/{id}/approve', [TournamentController::class, 'approvePlayer'])->name('player.approve');
     Route::post('/tournaments/{id}/join', [TournamentController::class, 'join'])->name('tournament.join');
     Route::post('/tournaments/{id}/add-player', [TournamentController::class, 'addPlayer'])->name('tournament.addPlayer');

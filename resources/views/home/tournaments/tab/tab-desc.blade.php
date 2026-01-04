@@ -6,7 +6,7 @@
         </p>
     </div>
 @else
-    <div class="text-center py-1">
+    <div class="text-left py-1">
         {!! $tournament->description !!}
     </div>
 @endif

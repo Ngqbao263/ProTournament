@@ -17,7 +17,7 @@
                     <li><a href="#" class="footer-link">Trang chủ</a></li>
                     <li><a href="#" class="footer-link">Tạo giải đấu</a></li>
                     <li><a href="#" class="footer-link">Tất cả giải đấu</a></li>
-                    <li><a href="#" class="footer-link">Tin tức</a></li>
+                    {{-- <li><a href="#" class="footer-link">Tin tức</a></li> --}}
                 </ul>
             </div>
 
