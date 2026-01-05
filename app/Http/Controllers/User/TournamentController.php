@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\User\SingleElimination;
+use App\Http\Controllers\User\DoubleElimination;
 use App\Models\Player;
 use Illuminate\Http\Request;
 use App\Models\Tournament;
@@ -31,7 +33,7 @@ class TournamentController extends Controller
             'description' => 'nullable|string',
             'type' => 'required',
             'mode' => 'required|in:individual,team',
-            'max_player' => 'required|integer|min:2',
+            'max_player' => 'required|integer|min:4',
             'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ], [
             'name.required' => 'Vui lòng nhập tên giải đấu.',
@@ -41,7 +43,9 @@ class TournamentController extends Controller
             'start_date.after_or_equal' => 'Ngày bắt đầu không được là ngày trong quá khứ.',
             'type.required' => 'Vui lòng chọn thể thức thi đấu.',
             'max_player.required' => 'Vui lòng nhập số lượng người tham gia tối đa.',
+            'max_player.min' => 'Sô lượng người chơi phải lớn hơn 4',
             'thumbnail.max' => 'Ảnh không được lớn hơn 2MB.',
+            'thumbnail.mimes' => 'Chỉ chấp nhận các file có đuôi jpg,jpeg,png,gif,webp.',
         ]);
 
         $tournament = Tournament::create([
@@ -135,16 +139,18 @@ class TournamentController extends Controller
     //Phần chi tiết giải đấu
     public function show($id)
     {
+        // Eager load các quan hệ cần thiết
         $tournament = Tournament::with([
             'players',
             'matches.player1',
-            'matches.player2'
+            'matches.player2',
+            'matches.winner' // Load thêm winner để tiện truy xuất tên
         ])->findOrFail($id);
 
-        // Gom nhóm matches theo vòng đấu (Code cũ)
+        // Gom nhóm matches theo vòng đấu để hiển thị ở tab Bracket (cho Single Elim)
         $rounds = $tournament->matches->sortBy('match_index')->groupBy('round_number');
 
-        // TÍNH TOÁN BẢNG XẾP HẠNG
+        // 1. TÍNH TOÁN BẢNG XẾP HẠNG (Thống kê thắng/thua/hiệu số)
         $rankings = $tournament->players->where('status', 'approved')->map(function($player) use ($tournament) {
             // Đếm số trận thắng
             $wins = $tournament->matches->where('winner_id', $player->id)->count();
@@ -164,61 +170,97 @@ class TournamentController extends Controller
                 'player' => $player,
                 'wins' => $wins,
                 'score_diff' => $scoreDiff,
-                'rank_label' => 'Vòng loại',
-                'medal' => null
+                'rank_label' => 'Vòng loại', // Mặc định
+                'medal' => null,
+                'sort_order' => 100 // Mặc định xếp cuối
             ];
         });
 
-        // XÁC ĐỊNH DANH HIỆU
-        $finalRound = $rounds->last();
-        if($finalRound) {
-            $finalMatch = $finalRound->firstWhere('match_index', 0);
-            $thirdMatch = $finalRound->firstWhere('match_index', 1);
+        // 2. XÁC ĐỊNH DANH HIỆU (TOP 3) DỰA TRÊN THỂ THỨC
+        $championId = null;
+        $runnerUpId = null;
+        $thirdPlaceId = null;
 
-            $rankings = $rankings->map(function($item) use ($finalMatch, $thirdMatch) {
-                $pId = $item['player']->id;
+        // --- TRƯỜNG HỢP A: LOẠI TRỰC TIẾP (Single Elimination) ---
+        if ($tournament->type == 'single_elimination') {
+            $finalRound = $rounds->last(); // Vòng cuối cùng
+            if ($finalRound) {
+                // Trận Chung kết là index 0
+                $finalMatch = $finalRound->firstWhere('match_index', 0);
+                // Trận Tranh hạng 3 là index 1
+                $thirdMatch = $finalRound->firstWhere('match_index', 1);
 
-                // Vô địch
-                if ($finalMatch && $finalMatch->winner_id == $pId) {
-                    $item['rank_label'] = '<span class="fw-bold text-warning">VÔ ĐỊCH</span>';
-                    $item['medal'] = '🥇';
-                    $item['sort_order'] = 1;
+                if ($finalMatch && $finalMatch->winner_id) {
+                    $championId = $finalMatch->winner_id;
+                    $runnerUpId = ($finalMatch->winner_id == $finalMatch->player1_id)
+                                   ? $finalMatch->player2_id
+                                   : $finalMatch->player1_id;
                 }
-                // Á Quân
-                elseif ($finalMatch && ($finalMatch->player1_id == $pId || $finalMatch->player2_id == $pId) && $finalMatch->winner_id) {
-                    $item['rank_label'] = '<span class="text-secondary fw-bold">Á Quân</span>';
-                    $item['medal'] = '🥈';
-                    $item['sort_order'] = 2;
+                if ($thirdMatch && $thirdMatch->winner_id) {
+                    $thirdPlaceId = $thirdMatch->winner_id;
                 }
-                // Hạng 3
-                elseif ($thirdMatch && $thirdMatch->winner_id == $pId) {
-                    $item['rank_label'] = '<span class="fw-bold" style="color: #cd7f32">Hạng 3</span>';
-                    $item['medal'] = '🥉';
-                    $item['sort_order'] = 3;
-                }
-                // Hạng 4
-                elseif ($thirdMatch && ($thirdMatch->player1_id == $pId || $thirdMatch->player2_id == $pId) && $thirdMatch->winner_id) {
-                    $item['rank_label'] = 'Hạng 4';
-                    $item['sort_order'] = 4;
-                }
-                // Còn lại xếp theo số trận thắng
-                else {
-                    $item['sort_order'] = 100;
-                }
-                return $item;
-            });
+            }
+        }
+        // --- TRƯỜNG HỢP B: NHÁNH THẮNG - NHÁNH THUA (Double Elimination) ---
+        elseif ($tournament->type == 'double_elimination') {
+            // Tìm trận Chung kết tổng (có group='final')
+            $grandFinal = $tournament->matches->firstWhere('group', 'final');
+
+            if ($grandFinal && $grandFinal->winner_id) {
+                $championId = $grandFinal->winner_id;
+                $runnerUpId = ($grandFinal->winner_id == $grandFinal->player1_id)
+                               ? $grandFinal->player2_id
+                               : $grandFinal->player1_id;
+            }
+
+            // Tìm Hạng 3: Là người THUA ở trận chung kết NHÁNH THUA
+            // (Lấy trận thuộc group 'loser' có round_number lớn nhất)
+            $lastLoserMatch = $tournament->matches
+                ->where('group', 'loser')
+                ->sortByDesc('round_number')
+                ->first();
+
+            if ($lastLoserMatch && $lastLoserMatch->winner_id) {
+                // Người thắng trận này vào CK Tổng -> Người thua trận này là Hạng 3
+                $thirdPlaceId = ($lastLoserMatch->winner_id == $lastLoserMatch->player1_id)
+                                ? $lastLoserMatch->player2_id
+                                : $lastLoserMatch->player1_id;
+            }
         }
 
-        // SẮP XẾP DANH SÁCH
-        // Ưu tiên: Danh hiệu -> Số trận thắng -> Hiệu số
+        // 3. GÁN DANH HIỆU VÀO LIST RANKINGS
+        $rankings = $rankings->map(function($item) use ($championId, $runnerUpId, $thirdPlaceId) {
+            $pId = $item['player']->id;
+
+            if ($championId && $pId == $championId) {
+                $item['rank_label'] = '<span class="fw-bold text-warning">VÔ ĐỊCH</span>';
+                $item['medal'] = '🥇';
+                $item['sort_order'] = 1;
+            }
+            elseif ($runnerUpId && $pId == $runnerUpId) {
+                $item['rank_label'] = '<span class="text-secondary fw-bold">Á Quân</span>';
+                $item['medal'] = '🥈';
+                $item['sort_order'] = 2;
+            }
+            elseif ($thirdPlaceId && $pId == $thirdPlaceId) {
+                $item['rank_label'] = '<span class="fw-bold" style="color: #cd7f32">Hạng 3</span>';
+                $item['medal'] = '🥉';
+                $item['sort_order'] = 3;
+            }
+
+            return $item;
+        });
+
+        // 4. SẮP XẾP DANH SÁCH HOÀN CHỈNH
+        // Ưu tiên: Danh hiệu (sort_order nhỏ nhất) -> Số trận thắng -> Hiệu số
         $rankings = $rankings->sortByDesc('score_diff')
                              ->sortByDesc('wins')
                              ->sortBy('sort_order')
                              ->values();
 
-        // Tạo response và thêm header để TẮT CACHE (Giữ nguyên logic cũ của bạn)
+        // 5. TRẢ VỀ VIEW (Kèm header tắt cache để update real-time)
         $response = response(
-            view('home.tournaments.show', compact('tournament', 'rounds', 'rankings')) // <--- Truyền thêm $rankings
+            view('home.tournaments.show', compact('tournament', 'rounds', 'rankings'))
         );
 
         $response->header('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -493,20 +535,80 @@ class TournamentController extends Controller
             }
         }
 
-        $this->processWin($match, $winnerId, $score1, $score2);
+        if ($tournament->type == 'single_elimination') {
+            $service = new SingleElimination();
+            $service->processWin($match, $winnerId, $score1, $score2);
+        }
+        elseif ($tournament->type == 'double_elimination') {
+            $logic = new DoubleElimination();
+            $logic->processWin($match, $winnerId, $score1, $score2);
+        }
 
-        // Lấy lại thông tin match mới nhất để biết tên winner
+        // Lấy lại thông tin match để trả về tên
         $match->refresh();
-
         $loserName = null;
+        $loserInfo = null;
+        $winnerInfo = null;
 
         if ($winnerId) {
-            $maxRound = Matches::where('tournament_id', $match->tournament_id)->max('round_number');
+            $loserId = ($winnerId == $match->player1_id) ? $match->player2_id : $match->player1_id;
+            $loser = Player::find($loserId);
+            $loserName = $loser ? $loser->name : null;
+        }
 
-            if ($match->round_number == ($maxRound - 1)) {
-                $loser = ($winnerId == $match->player1_id) ? $match->player2 : $match->player1;
-                $loserName = $loser ? $loser->name : null;
+        if ($loserId && $tournament->type == 'double_elimination') {
+            // Tìm trận đấu ở nhánh thua (group='loser') mà người này vừa được thêm vào
+            // Sắp xếp theo updated_at desc để lấy trận mới nhất vừa được update
+            $nextLoserMatch = Matches::where('tournament_id', $tournament->id)
+                ->where('group', 'loser')
+                ->where(function($q) use ($loserId) {
+                    $q->where('player1_id', $loserId)
+                      ->orWhere('player2_id', $loserId);
+                })
+                ->orderBy('updated_at', 'desc')
+                ->first();
+
+            if ($nextLoserMatch) {
+                $loserInfo = [
+                    'round_number' => $nextLoserMatch->round_number,
+                    'match_index'  => $nextLoserMatch->match_index,
+                    'slot'         => ($nextLoserMatch->player1_id == $loserId) ? 1 : 2 // Biết đường điền vào ô trên hay ô dưới
+                ];
             }
+        }
+
+        // 2. XỬ LÝ NGƯỜI THẮNG
+        if ($winnerId) {
+            // Tìm trận đấu TIẾP THEO mà người thắng vừa được điền tên vào
+            // Logic: Tìm trận có chứa người thắng, vừa được cập nhật mới nhất (updated_at)
+            $nextWinnerMatch = Matches::where('tournament_id', $tournament->id)
+                ->where('id', '!=', $match->id) // Loại trừ chính trận vừa đấu
+                ->where(function($q) use ($winnerId) {
+                    $q->where('player1_id', $winnerId)
+                      ->orWhere('player2_id', $winnerId);
+                })
+                // QUAN TRỌNG: Sắp xếp theo thời gian cập nhật giảm dần
+                // Trận tiếp theo vừa được code processWin() update nên sẽ nằm đầu tiên
+                ->orderBy('updated_at', 'desc')
+                ->first();
+
+                if ($nextWinnerMatch) {
+                    // Lấy group từ DB
+                    $nextGroup = $nextWinnerMatch->group;
+
+                    // FIX LỖI: Nếu là giải Loại trực tiếp mà DB lưu là 'winners',
+                    // ta đổi thành 'single' để khớp với HTML bên frontend
+                    if ($tournament->type == 'single_elimination' && $nextGroup == 'winners') {
+                        $nextGroup = 'single';
+                    }
+
+                    $winnerInfo = [
+                        'group'        => $nextGroup, // <--- Dùng biến đã xử lý này
+                        'round_number' => $nextWinnerMatch->round_number,
+                        'match_index'  => $nextWinnerMatch->match_index,
+                        'slot'         => ($nextWinnerMatch->player1_id == $winnerId) ? 1 : 2
+                    ];
+                }
         }
 
         // Kiểm tra giải kết thuc chưa
@@ -525,6 +627,8 @@ class TournamentController extends Controller
             'winner_name' => $match->winner ? $match->winner->name : null, // Trả về tên người thắng
             'winner_id' => $winnerId,
             'loser_name' => $loserName, // Trả về tên người thua
+            'loser_info' => $loserInfo,
+            'winner_info' => $winnerInfo,
             'tournament_status' => $tournament->fresh()->status
         ]);
     }
@@ -541,12 +645,12 @@ class TournamentController extends Controller
 
         // === ĐIỀU HƯỚNG DỰA TRÊN THỂ THỨC ===
         if ($tournament->type == 'single_elimination') {
-            // Gọi hàm tạo Loại trực tiếp
-            $this->generateSingleElimination($tournament, $players);
+            $logic = new SingleElimination();
+            $logic->generateSingleElimination($tournament, $players);
         }
         elseif ($tournament->type == 'double_elimination') {
-            // Gọi hàm tạo Nhánh thắng thua
-            $this->generateDoubleElimination($tournament, $players);
+            $logic = new DoubleElimination();
+            $logic->generateDoubleElimination($tournament, $players);
         }
 
         $tournament->update(['status' => 'started']);
@@ -554,78 +658,9 @@ class TournamentController extends Controller
         return back()->with('success', 'Giải đấu đã bắt đầu!');
     }
 
-    // Tạo giải Loại trực tiếp
-    private function generateSingleElimination($tournament, $players)
-    {
-        $playerCount = $players->count();
-        // Tính toán số lượng cần thiết (lũy thừa của 2: 2, 4, 8, 16, 32...)
-        // Ví dụ: 6 người chơi => cần sơ đồ 8 (tạo người chơi ảo cho chỗ trống)
-        $pow = ceil(log($playerCount, 2));
-        $totalPositions = pow(2, $pow);
-        $totalRounds = $pow;
 
-        // Tạo danh sách người chơi đầy đủ
-        $bracketPlayers = $players->all();
-        for ($i = $playerCount; $i < $totalPositions; $i++) {
-            $bracketPlayers[] = null; // người chơi ảo
-        }
 
-        // Random vị trí thi đấu
-        shuffle($bracketPlayers);
 
-        // Tạo các trận đấu cho tất cả các vòng
-        for ($round = 1; $round <= $totalRounds; $round++) {
-            $matchesInRound = $totalPositions / pow(2, $round);
-
-            for ($i = 0; $i < $matchesInRound; $i++) {
-                // Chỉ vòng 1 mới có người chơi ngay từ đầu
-                $p1 = ($round == 1) ? ($bracketPlayers[$i * 2] ?? null) : null;
-                $p2 = ($round == 1) ? ($bracketPlayers[$i * 2 + 1] ?? null) : null;
-
-                Matches::create([
-                    'tournament_id' => $tournament->id,
-                    'round_number' => $round,
-                    'match_index' => $i,
-                    'player1_id' => $p1 ? $p1->id : null,
-                    'player2_id' => $p2 ? $p2->id : null,
-                ]);
-            }
-        }
-
-        // Tạo trận tranh hạng 3 (nếu có trên 4 người)
-        // Trận này sẽ có round_number BẰNG vòng chung kết, nhưng match_index = 1
-        if ($totalPositions >= 4) {
-            Matches::create([
-                'tournament_id' => $tournament->id,
-                'round_number' => $totalRounds, // Cùng vòng với chung kết
-                'match_index' => 1, // Chung kết là index 0, Hạng 3 là index 1
-                'player1_id' => null, // Chờ người thua Bán kết 1
-                'player2_id' => null, // Chờ người thua Bán kết 2
-            ]);
-        }
-
-        // Tự động xử lý các trận có người chơi ảo (miễn đấu) ở vòng 1
-        $this->advanceByes($tournament->id);
-    }
-
-    // Hàm phụ: Tự động đẩy người thắng nếu gặp người chơi ảo
-    private function advanceByes($tournamentId)
-    {
-        $round1Matches = Matches::where('tournament_id', $tournamentId)
-                                ->where('round_number', 1)
-                                ->get();
-
-        foreach ($round1Matches as $match) {
-            // Nếu có player1 mà không có player2 => player1 thắng tự động
-            if ($match->player1_id && !$match->player2_id) {
-                $this->processWin($match, $match->player1_id, null, null);
-            }
-            // Nếu không có player1 mà có player2
-            elseif (!$match->player1_id && $match->player2_id) {
-                $this->processWin($match, $match->player2_id, null, null);
-            }
-        }
-    }
 
     // Hàm riêng để tạo giải Nhánh thắng - Nhánh thua
     private function generateDoubleElimination($tournament, $players)
@@ -633,62 +668,7 @@ class TournamentController extends Controller
 
     }
 
-    // Hàm phụ: Xử lý thắng thua và cập nhật vòng sau
-    private function processWin($match, $winnerId, $score1, $score2)
-    {
-        // Cập nhật điểm và người thắng
-        $match->score1 = $score1;
-        $match->score2 = $score2;
-        $match->winner_id = $winnerId;
-        $match->save();
 
-        // Tìm trận tiếp theo để điền tên người thắng vào
-        $nextRound = $match->round_number + 1;
-        $nextMatchIndex = floor($match->match_index / 2);
-
-        $nextMatch = Matches::where('tournament_id', $match->tournament_id)
-            ->where('round_number', $nextRound)
-            ->where('match_index', $nextMatchIndex)
-            ->first();
-
-        if ($nextMatch) {
-            // Nếu là trận chẵn (0, 2, 4...) ở vòng trước => vào slot Player 1 trận sau
-            if ($match->match_index % 2 == 0) {
-                $nextMatch->player1_id = $winnerId;
-            } else {
-            // Nếu là trận lẻ (1, 3, 5...) ở vòng trước => vào slot Player 2 trận sau
-                $nextMatch->player2_id = $winnerId;
-            }
-            $nextMatch->save();
-        }
-
-        // Tìm trận tranh hạng 3 (index 1, cùng vòng $nextRound)
-        $thirdPlaceMatch = Matches::where('tournament_id', $match->tournament_id)
-            ->where('round_number', $nextRound)
-            ->where('match_index', 1) // Trận hạng 3
-            ->first();
-
-        // Chỉ xử lý nếu đây là trận Bán kết (tức là có tồn tại trận hạng 3)
-        if ($thirdPlaceMatch && $match->round_number == ($nextRound - 1)) {
-            // Xác định người thua
-            $loserId = null;
-            if ($match->winner_id == $match->player1_id) {
-                $loserId = $match->player2_id;
-            } else if ($match->winner_id == $match->player2_id) {
-                $loserId = $match->player1_id;
-            }
-
-            // Đưa người thua vào đúng slot
-            if ($loserId) {
-                if ($match->match_index == 0) { // Người thua ở Bán kết 1 (index 0)
-                    $thirdPlaceMatch->player1_id = $loserId;
-                } else if ($match->match_index == 1) { // Người thua ở Bán kết 2 (index 1)
-                    $thirdPlaceMatch->player2_id = $loserId;
-                }
-                $thirdPlaceMatch->save();
-            }
-        }
-    }
 
     // Lịch thi đấu
     public function updateMatchTime(Request $request, Matches $match)

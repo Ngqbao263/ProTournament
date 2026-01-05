@@ -1300,3 +1300,50 @@ h4.text-info {
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
 }
+
+/* Nhánh thắng nhánh thua */
+.bracket-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+    width: 100%; /* Bắt buộc có để dây phủ kín container */
+    height: 100%;
+}
+
+/* 2. Đảm bảo Container của Nhánh thắng/thua có độ cao và scroll giống Loại trực tiếp */
+#bracket-winner,
+#bracket-loser,
+#bracket-final {
+    position: relative; /* Để dây .bracket-lines bám theo */
+    min-height: 400px; /* Chiều cao tối thiểu để không bị cụt dây */
+
+    /* Các thuộc tính flex/scroll đã có sẵn trong class .bracket-container */
+    /* Code này chỉ bổ sung những thứ class chung có thể thiếu */
+}
+
+/* 3. Tinh chỉnh riêng cho Chung kết tổng (Căn giữa đẹp hơn) */
+#bracket-final {
+    min-height: auto; /* Chung kết ít trận nên không cần quá cao */
+    padding-bottom: 20px;
+}
+
+#bracket-final .round-column {
+    margin: 0 auto; /* Căn giữa cột */
+}
+
+/* 4. Style cho Tiêu đề các nhánh (Nhánh thắng, Nhánh thua...) */
+/* Giúp phân biệt rõ ràng giữa các khu vực */
+h4.text-uppercase {
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Đổ bóng chữ cho nổi bật trên nền đen */
+}
+
+/* 5. Đảm bảo Card trận đấu trong nhánh thắng/thua nổi lên trên dây */
+/* (Class .match-card đã có style ở code cũ, đoạn này chỉ reinforce z-index) */
+#bracket-winner .match-card,
+#bracket-loser .match-card,
+#bracket-final .match-card {
+    z-index: 2;
+}

@@ -1,17 +1,14 @@
 {{-- Logic tìm ra Top 3 --}}
 @php
-    $finalRound = $rounds->last();
-    $finalMatch = $finalRound ? $finalRound->firstWhere('match_index', 0) : null;
-    $thirdMatch = $finalRound ? $finalRound->firstWhere('match_index', 1) : null;
+    // Tìm người có thứ hạng 1, 2, 3 dựa trên sort_order đã gán ở Controller
+    $championItem = $rankings->firstWhere('sort_order', 1);
+    $runnerUpItem = $rankings->firstWhere('sort_order', 2);
+    $thirdPlaceItem = $rankings->firstWhere('sort_order', 3);
 
-    $champion = $finalMatch && $finalMatch->winner_id ? $finalMatch->winner : null;
-    $runnerUp =
-        $finalMatch && $finalMatch->winner_id
-            ? ($finalMatch->winner_id == $finalMatch->player1_id
-                ? $finalMatch->player2
-                : $finalMatch->player1)
-            : null;
-    $thirdPlace = $thirdMatch && $thirdMatch->winner_id ? $thirdMatch->winner : null;
+    // Lấy object Player ra để hiển thị
+    $champion = $championItem ? $championItem['player'] : null;
+    $runnerUp = $runnerUpItem ? $runnerUpItem['player'] : null;
+    $thirdPlace = $thirdPlaceItem ? $thirdPlaceItem['player'] : null;
 @endphp
 
 {{-- Bục vinh danh --}}

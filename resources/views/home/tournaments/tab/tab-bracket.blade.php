@@ -1,69 +1,118 @@
 @if ($tournament->status != 'open')
-    <div class="container-fluid">
+    <div class="container-fluid pb-5">
         @php $matchCounter = 1; @endphp
-        <div class="bracket-container" id="bracket-container">
-            <svg id="bracket-lines"></svg>
 
-            @php $totalRounds = $rounds->count(); @endphp
+        {{-- CSS CỦA BẠN SẼ TỰ ĐỘNG ÁP DỤNG VÌ CHÚNG TA DÙNG ĐÚNG CLASS --}}
 
-            @foreach ($rounds as $roundNumber => $matches)
-                <div class="round-column">
-                    <div class="round-title">
-                        @if ($roundNumber == $totalRounds)
-                            {{-- Vòng cuối cùng: Chung kết --}}
-                            @if ($matches->contains('match_index', 1))
-                                Chung Kết & Hạng 3
+        {{-- KIỂM TRA THỂ THỨC --}}
+        @if ($tournament->type == 'double_elimination')
+
+            {{-- === 1. NHÁNH THẮNG (WINNER BRACKET) === --}}
+            <div class="d-flex align-items-center mb-3 mt-4">
+                <h4 class="text-white fw-bold m-0 text-uppercase">Nhánh Thắng</h4>
+            </div>
+
+            {{-- Dùng đúng class "bracket-container" để nhận CSS flex, gap, scroll --}}
+            <div class="bracket-container" id="bracket-winner">
+                <svg class="bracket-lines"></svg>
+
+                @foreach ($tournament->matches->where('group', 'winner')->sortBy('match_index')->groupBy('round_number') as $roundNumber => $matches)
+                    <div class="round-column">
+                        <div class="round-title">Vòng {{ $roundNumber }}</div>
+                        <div class="match-list">
+                            @foreach ($matches as $match)
+                                @include('home.tournaments.partials.match-card', [
+                                    'match' => $match,
+                                    'matchCounter' => $matchCounter++,
+                                    'bracketType' => 'winner',
+                                ])
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <hr>
+
+            {{-- === 2. NHÁNH THUA (LOSER BRACKET) === --}}
+            <div class="d-flex align-items-center mb-3">
+                <h4 class="text-warning fw-bold m-0 text-uppercase">Nhánh Thua</h4>
+            </div>
+
+            <div class="bracket-container mb-5" id="bracket-loser">
+                <svg class="bracket-lines"></svg>
+
+                @foreach ($tournament->matches->where('group', 'loser')->sortBy('match_index')->groupBy('round_number') as $roundNumber => $matches)
+                    <div class="round-column">
+                        <div class="round-title">Vòng {{ $roundNumber }}</div>
+                        <div class="match-list">
+                            @foreach ($matches as $match)
+                                @include('home.tournaments.partials.match-card', [
+                                    'match' => $match,
+                                    'matchCounter' => $matchCounter++,
+                                    'bracketType' => 'loser',
+                                ])
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <hr>
+
+            {{-- === 3. CHUNG KẾT TỔNG (GRAND FINAL) === --}}
+            <div class="d-flex align-items-center mb-3 justify-content-center">
+                <h4 class="text-success fw-bold m-0 text-uppercase">Chung Kết Tổng</h4>
+            </div>
+
+            {{-- Class justify-content-center để căn giữa trận chung kết --}}
+            <div class="bracket-container justify-content-center" id="bracket-final">
+                @foreach ($tournament->matches->where('group', 'final') as $match)
+                    <div class="round-column">
+                        <div class="match-list justify-content-center">
+                            @include('home.tournaments.partials.match-card', [
+                                'match' => $match,
+                                'matchCounter' => $matchCounter++,
+                                'bracketType' => 'final',
+                            ])
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            {{-- === GIAO DIỆN LOẠI TRỰC TIẾP (GIỮ NGUYÊN) === --}}
+            <div class="bracket-container" id="bracket-container">
+                <svg id="bracket-lines"></svg>
+                @php $totalRounds = $rounds->count(); @endphp
+
+                @foreach ($rounds as $roundNumber => $matches)
+                    <div class="round-column">
+                        <div class="round-title">
+                            @if ($roundNumber == $totalRounds)
+                                @if ($matches->contains('match_index', 1))
+                                    Chung Kết & Hạng 3
+                                @else
+                                    Chung Kết
+                                @endif
+                            @elseif ($roundNumber == $totalRounds - 1)
+                                Bán Kết
+                            @elseif ($roundNumber == $totalRounds - 2)
+                                Tứ Kết
                             @else
-                                Chung Kết
+                                Vòng {{ $roundNumber }}
                             @endif
-                        @elseif ($roundNumber == $totalRounds - 1)
-                            {{-- Kế cuối: Bán kết --}}
-                            Bán Kết
-                        @elseif ($roundNumber == $totalRounds - 2)
-                            {{-- Kế của kế cuối: Tứ kết --}}
-                            Tứ Kết
-                        @else
-                            {{-- Còn lại --}}
-                            Vòng {{ $roundNumber }}
-                        @endif
+                        </div>
+                        <div class="match-list">
+                            @foreach ($matches as $match)
+                                @include('home.tournaments.partials.match-card', [
+                                    'match' => $match,
+                                    'matchCounter' => $matchCounter++,
+                                    'bracketType' => 'single',
+                                ])
+                            @endforeach
+                        </div>
                     </div>
-                    <div class="match-list">
-                        @foreach ($matches as $match)
-                            <div class="match-card" id="match-{{ $match->id }}" data-match-id="{{ $match->id }}"
-                                data-round="{{ $match->round_number }}" data-index="{{ $match->match_index }}">
-
-                                <div class="player-row">
-                                    <span
-                                        class="player-name {{ $match->winner_id && $match->winner_id == $match->player1_id ? 'winner' : '' }} {{ $match->winner_id && $match->winner_id == $match->player2_id ? 'loser' : '' }}">
-                                        {{ $match->player1 ? $match->player1->name : '---' }}
-                                    </span>
-                                    <input type="number" class="score-input" value="{{ $match->score1 }}"
-                                        data-match-id="{{ $match->id }}" data-player="1"
-                                        {{ !$match->player1 || !$match->player2 || $tournament->creator_id != auth()->id() ? 'disabled' : '' }}>
-                                </div>
-                                <div class="player-row">
-                                    <span
-                                        class="player-name {{ $match->winner_id && $match->winner_id == $match->player2_id ? 'winner' : '' }} {{ $match->winner_id && $match->winner_id == $match->player1_id ? 'loser' : '' }}">
-                                        {{ $match->player2 ? $match->player2->name : '---' }}
-                                    </span>
-                                    <input type="number" class="score-input" value="{{ $match->score2 }}"
-                                        data-match-id="{{ $match->id }}" data-player="2"
-                                        {{ !$match->player1 || !$match->player2 || $tournament->creator_id != auth()->id() ? 'disabled' : '' }}>
-                                </div>
-                                <div class="text-center mt-1">
-                                    <small style="font-size: 10px; color: white">Trận
-                                        #{{ $matchCounter++ }}</small>
-                                    @if ($match->match_index == 1 && $loop->parent->last)
-                                        <span class="badge bg-warning text-dark" style="font-size: 9px">Tranh hạng
-                                            3</span>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endforeach
-        </div>
+                @endforeach
+            </div>
+        @endif
     </div>
 @else
     <div class="text-center py-5">
@@ -141,65 +190,148 @@
                     }
 
                     // === 2. XỬ LÝ NGƯỜI THẮNG (VÀO VÒNG TRONG) ===
-                    const nextRound = currentRound + 1;
-                    const nextIndex = Math.floor(currentIndex / 2);
-                    const nextCard = document.querySelector(
-                        `.match-card[data-round="${nextRound}"][data-index="${nextIndex}"]`);
+                    if (data.winner_name && data.winner_info) {
+                        const wGroup = data.winner_info.group; // winner, loser, hoặc final
+                        const wRound = data.winner_info.round_number;
+                        const wIndex = data.winner_info.match_index;
+                        const wSlot = data.winner_info.slot;
 
-                    if (nextCard && data.winner_name) {
-                        const targetPlayerSlot = (currentIndex % 2 === 0) ? 1 : 2;
-                        const opponentSlot = (targetPlayerSlot === 1) ? 2 : 1;
+                        // Tìm thẻ Card chính xác dựa trên Group, Round, Index
+                        const nextCard = document.querySelector(
+                            `.match-card[data-group="${wGroup}"][data-round="${wRound}"][data-index="${wIndex}"]`
+                        );
 
-                        const targetInput = nextCard.querySelector(
-                            `input[data-player="${targetPlayerSlot}"]`);
-                        const targetNameSpan = targetInput.previousElementSibling;
-                        const opponentInput = nextCard.querySelector(
-                            `input[data-player="${opponentSlot}"]`);
-                        const opponentNameSpan = opponentInput.previousElementSibling;
+                        if (nextCard) {
+                            const targetInput = nextCard.querySelector(`input[data-player="${wSlot}"]`);
+                            const targetNameSpan = targetInput.previousElementSibling;
 
-                        targetNameSpan.textContent = data.winner_name;
-                        targetNameSpan.style.color = '#00ff7f';
-                        setTimeout(() => {
-                            targetNameSpan.style.color = '';
-                        }, 1000);
+                            // Tìm đối thủ để check mở khóa
+                            const opponentSlot = (wSlot === 1) ? 2 : 1;
+                            const opponentInput = nextCard.querySelector(
+                                `input[data-player="${opponentSlot}"]`);
+                            const opponentNameSpan = opponentInput.previousElementSibling;
 
-                        if (opponentNameSpan.textContent.trim() !== '---') {
+                            // Điền tên
+                            targetNameSpan.textContent = data.winner_name;
+                            targetNameSpan.style.color = '#00ff7f';
+                            setTimeout(() => {
+                                targetNameSpan.style.color = '';
+                            }, 1000);
+
+                            // Mở khóa nếu đối thủ đã có mặt
+                            if (opponentNameSpan.textContent.trim() !== '---' && opponentNameSpan
+                                .textContent.trim() !== '') {
+                                targetInput.disabled = false;
+                                opponentInput.disabled = false;
+                            } else {
+                                targetInput.disabled = true;
+                            }
+                        }
+                    }
+
+                    // TRƯỜNG HỢP B: Logic cũ (Dành cho giải Single Elimination - Dự phòng)
+                    else if (data.winner_name) {
+                        const nextRound = currentRound + 1;
+                        const nextIndex = Math.floor(currentIndex / 2);
+                        // Tìm đại trong group hiện tại hoặc single
+                        const currentGroup = currentCard.dataset.group || 'single';
+
+                        const nextCard = document.querySelector(
+                            `.match-card[data-group="${currentGroup}"][data-round="${nextRound}"][data-index="${nextIndex}"]`
+                        );
+
+                        if (nextCard) {
+                            const targetPlayerSlot = (currentIndex % 2 === 0) ? 1 : 2;
+                            const targetInput = nextCard.querySelector(
+                                `input[data-player="${targetPlayerSlot}"]`);
+                            const targetNameSpan = targetInput.previousElementSibling;
+
+                            targetNameSpan.textContent = data.winner_name;
+                            targetNameSpan.style.color = '#00ff7f';
+                            setTimeout(() => {
+                                targetNameSpan.style.color = '';
+                            }, 1000);
+
+                            // Logic mở khóa đơn giản
                             targetInput.disabled = false;
-                            opponentInput.disabled = false;
-                        } else {
-                            targetInput.disabled = true;
                         }
                     }
 
                     // === 3. XỬ LÝ NGƯỜI THUA (VÀO TRANH HẠNG 3) ===
                     // Kiểm tra xem server có trả về tên người thua không
-                    if (data.loser_name) {
+                    if (data.loser_name && data.loser_info) {
+                        const lRound = data.loser_info.round_number;
+                        const lIndex = data.loser_info.match_index;
+                        const lSlot = data.loser_info.slot; // 1 hoặc 2
+
+                        // QUAN TRỌNG: Thêm [data-group="loser"] để tìm chính xác ở NHÁNH THUA
+                        // (Tránh nhầm sang nhánh thắng có cùng số round/index)
+                        const loserCard = document.querySelector(
+                            `.match-card[data-group="loser"][data-round="${lRound}"][data-index="${lIndex}"]`
+                        );
+
+                        if (loserCard) {
+                            const targetInput = loserCard.querySelector(`input[data-player="${lSlot}"]`);
+                            const opponentSlot = (lSlot === 1) ? 2 : 1;
+                            const opponentInput = loserCard.querySelector(
+                                `input[data-player="${opponentSlot}"]`);
+
+                            if (targetInput) {
+                                // Điền tên người thua
+                                const nameSpan = targetInput.previousElementSibling;
+                                nameSpan.textContent = data.loser_name;
+
+                                // Hiệu ứng nháy màu vàng
+                                nameSpan.style.color = '#ffc107';
+                                nameSpan.style.fontWeight = 'bold';
+                                setTimeout(() => {
+                                    nameSpan.style.color = '';
+                                    nameSpan.style.fontWeight = '';
+                                }, 2000);
+
+                                // Mở khóa nếu đối thủ đã có mặt
+                                const opponentName = opponentInput.previousElementSibling.textContent
+                                    .trim();
+                                if (opponentName !== '---' && opponentName !== '') {
+                                    targetInput.disabled = false;
+                                    opponentInput.disabled = false;
+                                } else {
+                                    targetInput.disabled = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // Ưu tiên 2: Logic cũ (Dành cho Tranh hạng 3 - Single Elimination)
+                    // Chỉ chạy khi KHÔNG CÓ loser_info (tức là giải loại trực tiếp)
+                    else if (data.loser_name && !data.loser_info) {
+                        const nextRound = currentRound + 1;
                         const thirdPlaceCard = document.querySelector(
                             `.match-card[data-round="${nextRound}"][data-index="1"]`);
 
                         if (thirdPlaceCard) {
-                            // Logic slot cho hạng 3 tương tự: Trận bán kết 1 (index 0) vào slot 1, BK 2 (index 1) vào slot 2
-                            const loserSlot = (currentIndex % 2 === 0) ? 1 : 2;
-                            const loserOpponentSlot = (loserSlot === 1) ? 2 : 1;
+                            const lSlot = (currentIndex % 2 === 0) ? 1 : 2;
+                            const lOpponentSlot = (lSlot === 1) ? 2 : 1;
 
                             const loserInput = thirdPlaceCard.querySelector(
-                                `input[data-player="${loserSlot}"]`);
-                            const loserNameSpan = loserInput.previousElementSibling;
+                                `input[data-player="${lSlot}"]`);
                             const opponentInput = thirdPlaceCard.querySelector(
-                                `input[data-player="${loserOpponentSlot}"]`);
-                            const opponentNameSpan = opponentInput.previousElementSibling;
+                                `input[data-player="${lOpponentSlot}"]`);
 
-                            loserNameSpan.textContent = data.loser_name;
-                            loserNameSpan.style.color = '#ffc107'; // Màu vàng cho khác biệt
-                            setTimeout(() => {
-                                loserNameSpan.style.color = '';
-                            }, 1000);
+                            if (loserInput) {
+                                const loserNameSpan = loserInput.previousElementSibling;
+                                loserNameSpan.textContent = data.loser_name;
+                                loserNameSpan.style.color = '#ffc107';
+                                setTimeout(() => {
+                                    loserNameSpan.style.color = '';
+                                }, 1000);
 
-                            if (opponentNameSpan.textContent.trim() !== '---') {
-                                loserInput.disabled = false;
-                                opponentInput.disabled = false;
-                            } else {
-                                loserInput.disabled = true;
+                                const opponentName = opponentInput.previousElementSibling.textContent
+                                    .trim();
+                                if (opponentName !== '---' && opponentName !== '') {
+                                    loserInput.disabled = false;
+                                    opponentInput.disabled = false;
+                                }
                             }
                         }
                     }
@@ -243,87 +375,119 @@
 {{-- VẼ NHÁNH --}}
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+
         function drawBracketLines() {
-            const container = document.getElementById('bracket-container');
-            const svg = document.getElementById('bracket-lines');
+            // Tìm tất cả các container chứa sơ đồ
+            const containers = document.querySelectorAll('.bracket-container');
 
-            if (!container || !svg) return;
+            containers.forEach(container => {
+                // SỬA LỖI: Tìm thẻ svg bất kể là id hay class
+                const svg = container.querySelector('svg');
 
-            // Reset SVG
-            svg.innerHTML = '';
-            svg.setAttribute('width', container.scrollWidth);
-            svg.setAttribute('height', container.scrollHeight);
+                if (!svg) return;
 
-            const matches = document.querySelectorAll('.match-card');
+                // Reset SVG
+                svg.innerHTML = '';
+                svg.setAttribute('width', container.scrollWidth);
+                svg.setAttribute('height', container.scrollHeight);
 
-            matches.forEach(match => {
-                const round = parseInt(match.dataset.round);
-                const index = parseInt(match.dataset.index);
+                const matches = container.querySelectorAll('.match-card');
 
-                // Tìm trận đấu tiếp theo: Vòng sau, Vị trí index / 2
-                const nextRound = round + 1;
-                const nextIndex = Math.floor(index / 2);
+                matches.forEach(match => {
+                    const round = parseInt(match.dataset.round);
+                    const index = parseInt(match.dataset.index);
+                    // Nếu không có bracketType (code cũ), mặc định là 'single'
+                    const type = match.dataset.group || 'single';
 
-                // Tìm thẻ HTML của trận tiếp theo dựa trên data-round và data-index
-                const nextMatch = document.querySelector(
-                    `.match-card[data-round="${nextRound}"][data-index="${nextIndex}"]`);
+                    let nextRound = round + 1;
+                    let nextIndex = 0;
 
-                if (nextMatch) {
-                    const startRect = match.getBoundingClientRect();
-                    const endRect = nextMatch.getBoundingClientRect();
-                    const containerRect = container.getBoundingClientRect();
+                    // === LOGIC TÌM TRẬN TIẾP THEO ===
+                    if (type === 'loser') {
+                        // Nhánh thua: Vòng lẻ đi thẳng, Vòng chẵn nhập đôi
+                        if (round % 2 !== 0) {
+                            nextIndex = index;
+                        } else {
+                            nextIndex = Math.floor(index / 2);
+                        }
+                    } else {
+                        // Nhánh thắng & Loại trực tiếp: Luôn nhập đôi
+                        nextIndex = Math.floor(index / 2);
+                    }
 
-                    // Tính tọa độ (trừ đi scroll của container để chính xác)
-                    const scrollLeft = container.scrollLeft;
-                    const scrollTop = container.scrollTop; // Thường là 0
+                    // Tìm thẻ HTML của trận tiếp theo
+                    const nextMatch = container.querySelector(
+                        `.match-card[data-round="${nextRound}"][data-index="${nextIndex}"]`
+                    );
 
-                    // Điểm đầu: Giữa cạnh Phải thẻ trước
-                    const x1 = (startRect.right - containerRect.left) + scrollLeft;
-                    const y1 = (startRect.top + startRect.height / 2 - containerRect.top) + scrollTop;
-
-                    // Điểm cuối: Giữa cạnh Trái thẻ sau
-                    const x2 = (endRect.left - containerRect.left) + scrollLeft;
-                    const y2 = (endRect.top + endRect.height / 2 - containerRect.top) + scrollTop;
-
-                    // Điểm giữa để bẻ cua
-                    const xMid = x1 + (x2 - x1) / 2;
-
-                    // Vẽ dây: Đi thẳng -> Bẻ vuông góc -> Đi thẳng
-                    const pathStr = `M ${x1} ${y1} L ${xMid} ${y1} L ${xMid} ${y2} L ${x2} ${y2}`;
-
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", pathStr);
-                    path.setAttribute("stroke", "#555"); // Màu dây
-                    path.setAttribute("stroke-width", "2");
-                    path.setAttribute("fill", "none");
-
-                    svg.appendChild(path);
-                }
+                    if (nextMatch) {
+                        drawPath(container, svg, match, nextMatch);
+                    }
+                    // Vẽ dây nối tới Chung kết tổng (nếu đang ở nhánh thắng/thua)
+                    // else if (type === 'winner' || type === 'loser') {
+                    //     const finalMatch = document.querySelector(
+                    //         '.match-card[data-group="final"]');
+                    //     if (finalMatch) drawPath(container, svg, match, finalMatch, true);
+                    // }
+                });
             });
         }
 
-        // Vẽ ngay khi tải xong
-        setTimeout(drawBracketLines, 100);
+        // Hàm vẽ đường nối
+        function drawPath(container, svg, startEl, endEl, isCrossContainer = false) {
+            const startRect = startEl.getBoundingClientRect();
+            const endRect = endEl.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
 
-        // Vẽ lại khi thay đổi kích thước màn hình
+            // Nếu nối sang container khác (Chung kết), cần tính toán lại tọa độ gốc
+            // Ở đây ta dùng toạ độ tương đối với container hiện tại
+
+            const scrollLeft = container.scrollLeft;
+            const scrollTop = container.scrollTop;
+
+            const x1 = (startRect.right - containerRect.left) + scrollLeft;
+            const y1 = (startRect.top + startRect.height / 2 - containerRect.top) + scrollTop;
+
+            // Nếu endEl nằm ngoài (như chung kết), ta tính tương đối dựa trên vị trí màn hình
+            let x2, y2;
+
+            if (isCrossContainer) {
+                // Tính khoảng cách tương đối giữa 2 container
+                const offsetX = endRect.left - startRect.right;
+                const offsetY = endRect.top - startRect.top;
+
+                x2 = x1 + offsetX + (endRect.width / 2); // Nối vào giữa hoặc cạnh trái
+                y2 = y1 + offsetY;
+
+                // Nếu chung kết nằm ngay bên phải
+                x2 = (endRect.left - containerRect.left) + scrollLeft;
+                y2 = (endRect.top + endRect.height / 2 - containerRect.top) + scrollTop;
+            } else {
+                x2 = (endRect.left - containerRect.left) + scrollLeft;
+                y2 = (endRect.top + endRect.height / 2 - containerRect.top) + scrollTop;
+            }
+
+            const xMid = x1 + (x2 - x1) / 2;
+            const pathStr = `M ${x1} ${y1} L ${xMid} ${y1} L ${xMid} ${y2} L ${x2} ${y2}`;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", pathStr);
+            path.setAttribute("stroke", "#555");
+            path.setAttribute("stroke-width", "2");
+            path.setAttribute("fill", "none");
+
+            svg.appendChild(path);
+        }
+
+        setTimeout(drawBracketLines, 200);
         window.addEventListener('resize', drawBracketLines);
 
-        // Vẽ lại khi scroll (đôi khi cần thiết trên mobile)
-        document.getElementById('bracket-container').addEventListener('scroll', drawBracketLines);
-
-        // --- SỰ KIỆN QUAN TRỌNG: VẼ LẠI KHI CHUYỂN TAB ---
         const bracketTabBtn = document.getElementById('bracket-tab');
         if (bracketTabBtn) {
             bracketTabBtn.addEventListener('shown.bs.tab', function() {
-                // Khi tab Bảng đấu hiện ra hoàn toàn -> Gọi hàm vẽ dây
-                setTimeout(drawBracketLines, 50); // Delay 50ms để giao diện load xong
+                setTimeout(drawBracketLines, 50);
             });
         }
-
-        // Vẽ lại khi xoay màn hình điện thoại
-        // window.addEventListener('orientationchange', () => {
-        //     setTimeout(drawBracketLines, 200); // Delay chút để giao diện xoay xong mới vẽ
-        // });
     });
 </script>
 

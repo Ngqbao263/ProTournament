@@ -137,8 +137,8 @@
                         <option value="double_elimination"
                             {{ old('type', $tournament->type) == 'double_elimination' ? 'selected' : '' }}>Nhánh thắng
                             nhánh thua</option>
-                        <option value="round_robin"
-                            {{ old('type', $tournament->type) == 'round_robin' ? 'selected' : '' }}>Vòng tròn</option>
+                        <option value="round_robin" {{ old('type', $tournament->type) == 'round_robin' ? 'selected' : '' }}
+                            disabled>Vòng tròn (đang phát triển)</option>
                         <option value="group_stage" {{ old('type', $tournament->type) == 'group_stage' ? 'selected' : '' }}
                             disabled>Chia bảng đấu (đang phát triển)</option>
                     </select>
